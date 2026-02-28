@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink, GripVertical } from 'lucide-react'
+import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -18,7 +18,8 @@ interface PromptCardProps {
   prompt: Prompt
   viewMode: ViewMode
   searchQuery?: string
-  dragHandleProps?: Record<string, unknown>
+  onMoveUp?: () => void
+  onMoveDown?: () => void
   onEdit: (prompt: Prompt) => void
   onDelete: (prompt: Prompt) => void
   onShare: (prompt: Prompt) => void
@@ -240,7 +241,7 @@ function ContentModal({ prompt, onClose, onEdit }: { prompt: Prompt; onClose: ()
   )
 }
 
-export function PromptCard({ prompt, viewMode, searchQuery, dragHandleProps, onEdit, onDelete, onShare, onStopShare }: PromptCardProps) {
+export function PromptCard({ prompt, viewMode, searchQuery, onMoveUp, onMoveDown, onEdit, onDelete, onShare, onStopShare }: PromptCardProps) {
   const [copied, setCopied] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [contentOpen, setContentOpen] = useState(false)
@@ -255,14 +256,15 @@ export function PromptCard({ prompt, viewMode, searchQuery, dragHandleProps, onE
     return (
       <>
         <div className="flex items-start gap-4 px-4 py-3 border-b hover:bg-accent/30 transition-colors group">
-          {/* 드래그 핸들 */}
-          <button
-            {...(dragHandleProps as React.HTMLAttributes<HTMLButtonElement>)}
-            className="mt-1 shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-            aria-label="드래그하여 순서 변경"
-          >
-            <GripVertical className="w-4 h-4" />
-          </button>
+          {/* 순서 이동 버튼 */}
+          <div className="flex flex-col shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => onMoveUp?.()} disabled={!onMoveUp} className="p-0.5 hover:text-foreground text-muted-foreground disabled:opacity-30" aria-label="위로 이동">
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => onMoveDown?.()} disabled={!onMoveDown} className="p-0.5 hover:text-foreground text-muted-foreground disabled:opacity-30" aria-label="아래로 이동">
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
           {/* 썸네일 */}
           {prompt.image_url && (
             <button
@@ -415,13 +417,12 @@ export function PromptCard({ prompt, viewMode, searchQuery, dragHandleProps, onE
 
         {/* 액션 버튼 */}
         <div className="flex items-center gap-1 px-4 pb-3 border-t pt-2" onClick={(e) => e.stopPropagation()}>
-          {/* 드래그 핸들 */}
-          <button
-            {...(dragHandleProps as React.HTMLAttributes<HTMLButtonElement>)}
-            className="cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mr-1"
-            aria-label="드래그하여 순서 변경"
-          >
-            <GripVertical className="w-3.5 h-3.5" />
+          {/* 순서 이동 버튼 */}
+          <button onClick={() => onMoveUp?.()} disabled={!onMoveUp} className="h-8 w-6 flex items-center justify-center hover:text-foreground text-muted-foreground disabled:opacity-30" aria-label="위로 이동">
+            <ChevronUp className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => onMoveDown?.()} disabled={!onMoveDown} className="h-8 w-6 flex items-center justify-center hover:text-foreground text-muted-foreground disabled:opacity-30" aria-label="아래로 이동">
+            <ChevronDown className="w-3.5 h-3.5" />
           </button>
           <Button variant="ghost" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={handleCopy}>
             {copied
