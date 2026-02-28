@@ -226,19 +226,33 @@ export function PromptEditor({
               />
             </div>
 
-            {/* 폴더 선택 */}
-            <div className="space-y-1.5">
-              <Label>폴더</Label>
-              <select
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={form.folder_id || ''}
-                onChange={(e) => setForm((p) => ({ ...p, folder_id: e.target.value || null }))}
-              >
-                <option value="">미분류 (루트)</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
-              </select>
+            {/* 폴더 선택 + 참조 링크 (2열) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>폴더</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={form.folder_id || ''}
+                  onChange={(e) => setForm((p) => ({ ...p, folder_id: e.target.value || null }))}
+                >
+                  <option value="">미분류 (루트)</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>참조 링크 (선택)</Label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    value={form.link_url}
+                    onChange={(e) => setForm((p) => ({ ...p, link_url: e.target.value }))}
+                    placeholder="https://example.com"
+                    className="pl-8"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* 내용 - 분할 에디터 */}
@@ -440,20 +454,6 @@ export function PromptEditor({
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* 참조 링크 */}
-            <div className="space-y-1.5">
-              <Label>참조 링크 (선택)</Label>
-              <div className="relative">
-                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  value={form.link_url}
-                  onChange={(e) => setForm((p) => ({ ...p, link_url: e.target.value }))}
-                  placeholder="https://example.com"
-                  className="pl-8"
-                />
-              </div>
             </div>
 
             {/* 썸네일 - URL 또는 파일 업로드 */}

@@ -1,6 +1,6 @@
 'use client'
 
-// 프롬프트 목록 컴포넌트 - 그리드/리스트 전환, CRUD 모달 통합
+// 프롬프트 목록 컴포넌트 - 그리드/리스트 전환, CRUD 모달 통합, 드래그 정렬
 import { useState, useMemo } from 'react'
 import { Plus, LayoutGrid, List, Inbox, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -10,11 +10,53 @@ import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogFooter
 } from '@/components/ui/dialog'
+import {
+  DndContext, closestCenter, PointerSensor,
+  useSensor, useSensors, DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext, rectSortingStrategy, useSortable,
+  verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { PromptCard } from './PromptCard'
 import { PromptEditor } from './PromptEditor'
 import { usePrompts } from '@/lib/hooks/usePrompts'
 import { useFolders } from '@/lib/hooks/useFolders'
 import type { Prompt, ViewMode } from '@/lib/types'
+
+// 드래그 가능한 카드 래퍼
+function SortableCard({ prompt, viewMode, searchQuery, onEdit, onDelete, onShare, onStopShare }: {
+  prompt: Prompt
+  viewMode: ViewMode
+  searchQuery?: string
+  onEdit: (p: Prompt) => void
+  onDelete: (p: Prompt) => void
+  onShare: (p: Prompt) => void
+  onStopShare: (p: Prompt) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: prompt.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <PromptCard
+        prompt={prompt}
+        viewMode={viewMode}
+        searchQuery={searchQuery}
+        dragHandleProps={listeners}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onShare={onShare}
+        onStopShare={onStopShare}
+      />
+    </div>
+  )
+}
 
 // 복사 후 클립보드 에러 알림
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -37,7 +79,7 @@ interface PromptListProps {
 export function PromptList({
   folderIds, folderName, searchQuery, searchResults, isSearching
 }: PromptListProps) {
-  const { prompts, loading, createPrompt, updatePrompt, deletePrompt, toggleShare } = usePrompts(
+  const { prompts, loading, createPrompt, updatePrompt, deletePrompt, toggleShare, reorderPrompts } = usePrompts(
     // 검색 중이면 undefined(전체 조회), 아니면 folderIds 전달
     searchQuery ? undefined : folderIds
   )
@@ -48,6 +90,8 @@ export function PromptList({
   const [editTarget, setEditTarget] = useState<Prompt | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // 표시할 프롬프트: 검색 중이면 검색 결과, 아니면 폴더 내 목록
   const basePrompts = searchQuery ? (searchResults || []) : prompts
@@ -114,6 +158,16 @@ export function PromptList({
   // 공유 중지
   const handleStopShare = async (prompt: Prompt) => {
     await toggleShare(prompt.id, false)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id || searchQuery) return
+    const oldIndex = displayPrompts.findIndex((p) => p.id === active.id)
+    const newIndex = displayPrompts.findIndex((p) => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove([...displayPrompts], oldIndex, newIndex)
+    reorderPrompts(reordered)
   }
 
   return (
@@ -218,36 +272,45 @@ export function PromptList({
               </Button>
             )}
           </div>
-        ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
-            {displayPrompts.map((prompt) => (
-              <PromptCard
-                key={prompt.id}
-                prompt={prompt}
-                viewMode="grid"
-                searchQuery={searchQuery}
-                onEdit={(p) => { setEditTarget(p); setEditorOpen(true) }}
-                onDelete={setDeleteTarget}
-                onShare={handleShare}
-                onStopShare={handleStopShare}
-              />
-            ))}
-          </div>
         ) : (
-          <div className="divide-y">
-            {displayPrompts.map((prompt) => (
-              <PromptCard
-                key={prompt.id}
-                prompt={prompt}
-                viewMode="list"
-                searchQuery={searchQuery}
-                onEdit={(p) => { setEditTarget(p); setEditorOpen(true) }}
-                onDelete={setDeleteTarget}
-                onShare={handleShare}
-                onStopShare={handleStopShare}
-              />
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={displayPrompts.map((p) => p.id)}
+              strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+            >
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
+                  {displayPrompts.map((prompt) => (
+                    <SortableCard
+                      key={prompt.id}
+                      prompt={prompt}
+                      viewMode="grid"
+                      searchQuery={searchQuery}
+                      onEdit={(p) => { setEditTarget(p); setEditorOpen(true) }}
+                      onDelete={setDeleteTarget}
+                      onShare={handleShare}
+                      onStopShare={handleStopShare}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {displayPrompts.map((prompt) => (
+                    <SortableCard
+                      key={prompt.id}
+                      prompt={prompt}
+                      viewMode="list"
+                      searchQuery={searchQuery}
+                      onEdit={(p) => { setEditTarget(p); setEditorOpen(true) }}
+                      onDelete={setDeleteTarget}
+                      onShare={handleShare}
+                      onStopShare={handleStopShare}
+                    />
+                  ))}
+                </div>
+              )}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

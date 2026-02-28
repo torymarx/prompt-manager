@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink } from 'lucide-react'
+import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -18,6 +18,7 @@ interface PromptCardProps {
   prompt: Prompt
   viewMode: ViewMode
   searchQuery?: string
+  dragHandleProps?: Record<string, unknown>
   onEdit: (prompt: Prompt) => void
   onDelete: (prompt: Prompt) => void
   onShare: (prompt: Prompt) => void
@@ -239,7 +240,7 @@ function ContentModal({ prompt, onClose, onEdit }: { prompt: Prompt; onClose: ()
   )
 }
 
-export function PromptCard({ prompt, viewMode, searchQuery, onEdit, onDelete, onShare, onStopShare }: PromptCardProps) {
+export function PromptCard({ prompt, viewMode, searchQuery, dragHandleProps, onEdit, onDelete, onShare, onStopShare }: PromptCardProps) {
   const [copied, setCopied] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [contentOpen, setContentOpen] = useState(false)
@@ -254,6 +255,14 @@ export function PromptCard({ prompt, viewMode, searchQuery, onEdit, onDelete, on
     return (
       <>
         <div className="flex items-start gap-4 px-4 py-3 border-b hover:bg-accent/30 transition-colors group">
+          {/* 드래그 핸들 */}
+          <button
+            {...(dragHandleProps as React.HTMLAttributes<HTMLButtonElement>)}
+            className="mt-1 shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="드래그하여 순서 변경"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
           {/* 썸네일 */}
           {prompt.image_url && (
             <button
@@ -405,7 +414,15 @@ export function PromptCard({ prompt, viewMode, searchQuery, onEdit, onDelete, on
         </button>
 
         {/* 액션 버튼 */}
-        <div className="flex gap-1 px-4 pb-3 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 px-4 pb-3 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+          {/* 드래그 핸들 */}
+          <button
+            {...(dragHandleProps as React.HTMLAttributes<HTMLButtonElement>)}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mr-1"
+            aria-label="드래그하여 순서 변경"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
           <Button variant="ghost" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={handleCopy}>
             {copied
               ? <><Check className="w-3.5 h-3.5 text-green-500" /> 복사됨</>
