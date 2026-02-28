@@ -24,7 +24,7 @@ export type Prompt = {
   tags: string[];
   image_url: string | null;
   link_url: string | null;  // 참조 링크
-  sort_order: number;       // 수동 정렬 순서
+  sort_order?: number;      // 수동 정렬 순서 (선택, DB default 0)
   is_public: boolean;
   share_token: string | null;
   created_at: string;

@@ -106,6 +106,7 @@ export function WebsiteEditor({ open, onClose, onSave, currentFolderId, editTarg
       title: title.trim(),
       content: finalUrl,
       image_url: thumbnail,
+      link_url: null,
       tags,
       folder_id: currentFolderId,
       is_public: false,
