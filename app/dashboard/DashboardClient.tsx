@@ -1,7 +1,7 @@
 'use client'
 
 // 대시보드 실제 UI - 사이드바(폴더 트리) + 헤더(검색/테마/로그아웃) + 프롬프트 목록
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -12,12 +12,19 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { useSearch } from '@/lib/hooks/useSearch'
 import { useFolders, getDescendantIds } from '@/lib/hooks/useFolders'
-import { LogOut, ChevronRight } from 'lucide-react'
+import { LogOut, ChevronRight, User } from 'lucide-react'
 
 export default function DashboardClient() {
   const router = useRouter()
   const supabase = createClient()
   const { folders } = useFolders()
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null)
+    })
+  }, [])// eslint-disable-line react-hooks/exhaustive-deps
   const { query, setQuery, results, searching } = useSearch()
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -98,6 +105,13 @@ export default function DashboardClient() {
           <div className="flex items-center gap-2 shrink-0">
             <SearchBar value={query} onChange={setQuery} />
             <ThemeToggle />
+            {/* 로그인 유저 이메일 */}
+            {userEmail && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs text-muted-foreground max-w-[180px]">
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{userEmail}</span>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="icon"
