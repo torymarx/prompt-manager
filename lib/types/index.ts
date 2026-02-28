@@ -23,6 +23,7 @@ export type Prompt = {
   content: string; // 마크다운
   tags: string[];
   image_url: string | null;
+  link_url: string | null;  // 참조 링크
   is_public: boolean;
   share_token: string | null;
   created_at: string;

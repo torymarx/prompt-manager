@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2 } from 'lucide-react'
+import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -159,6 +159,17 @@ function ContentModal({ prompt, onClose, onEdit }: { prompt: Prompt; onClose: ()
                   ))}
                 </div>
               )}
+              {prompt.link_url && (
+                <a
+                  href={prompt.link_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-500 hover:underline"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  {(() => { try { return new URL(prompt.link_url).hostname } catch { return prompt.link_url } })()}
+                </a>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -191,17 +202,29 @@ function ContentModal({ prompt, onClose, onEdit }: { prompt: Prompt; onClose: ()
 
           {/* 하단 액션 */}
           <div className="flex items-center justify-between gap-2 px-6 py-3 border-t shrink-0 bg-muted/30">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={handleCopy}
-            >
-              {copied
-                ? <><Check className="w-3.5 h-3.5 text-green-500" /> 복사됨</>
-                : <><Copy className="w-3.5 h-3.5" /> 내용 복사</>
-              }
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleCopy}
+              >
+                {copied
+                  ? <><Check className="w-3.5 h-3.5 text-green-500" /> 복사됨</>
+                  : <><Copy className="w-3.5 h-3.5" /> 내용 복사</>
+                }
+              </Button>
+              {prompt.link_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-blue-500 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950"
+                  onClick={() => window.open(prompt.link_url!, '_blank', 'noopener,noreferrer')}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> 링크 열기
+                </Button>
+              )}
+            </div>
             <Button
               size="sm"
               className="gap-1.5"
@@ -372,6 +395,12 @@ export function PromptCard({ prompt, viewMode, searchQuery, onEdit, onDelete, on
                 <Badge variant="outline" className="text-xs">+{prompt.tags.length - 3}</Badge>
               )}
             </div>
+          )}
+          {prompt.link_url && (
+            <span className="inline-flex items-center gap-1 text-xs text-blue-500">
+              <ExternalLink className="w-3 h-3" />
+              {(() => { try { return new URL(prompt.link_url).hostname } catch { return '링크' } })()}
+            </span>
           )}
         </button>
 

@@ -37,6 +37,7 @@ const EMPTY_FORM = {
   content: '',
   tags: [] as string[],
   image_url: '',
+  link_url: '',
   folder_id: null as string | null,
 }
 
@@ -81,6 +82,7 @@ export function PromptEditor({
         content: editTarget.content,
         tags: editTarget.tags,
         image_url: editTarget.image_url || '',
+        link_url: editTarget.link_url || '',
         folder_id: editTarget.folder_id,
       })
     } else {
@@ -196,6 +198,7 @@ export function PromptEditor({
       content: form.content.trim(),
       tags: finalTags,
       image_url: form.image_url || null,
+      link_url: form.link_url.trim() || null,
       folder_id: form.folder_id,
       is_public: false,
       share_token: null,
@@ -437,6 +440,20 @@ export function PromptEditor({
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* 참조 링크 */}
+            <div className="space-y-1.5">
+              <Label>참조 링크 (선택)</Label>
+              <div className="relative">
+                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  value={form.link_url}
+                  onChange={(e) => setForm((p) => ({ ...p, link_url: e.target.value }))}
+                  placeholder="https://example.com"
+                  className="pl-8"
+                />
+              </div>
             </div>
 
             {/* 썸네일 - URL 또는 파일 업로드 */}
