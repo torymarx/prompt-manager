@@ -127,8 +127,10 @@ export function usePrompts(folderIds?: string[]) {
     )
     const failed = results.find((r) => r.error)
     if (failed) {
-      toast.error('순서 저장에 실패했습니다. sort_order 컬럼을 확인해주세요.')
+      toast.error('순서 저장 실패: ' + (failed.error?.message ?? '알 수 없는 오류'))
       await fetchPrompts() // 실패 시 DB 상태로 복원
+    } else {
+      toast.success('순서가 저장되었습니다.')
     }
   }
 
