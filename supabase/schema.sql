@@ -166,6 +166,31 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.prompts;
 
 
 -- ──────────────────────────────────────────────────────────
+-- 8. Storage 버킷 및 정책
+-- ⚠️  버킷은 SQL로 생성 불가 → Supabase 대시보드에서 수동 생성 필요
+--    Storage → New Bucket → Name: thumbnails, Public: ON
+-- ──────────────────────────────────────────────────────────
+
+-- 인증된 사용자: 업로드 허용
+CREATE POLICY IF NOT EXISTS "thumbnails_insert"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'thumbnails');
+
+-- 전체 공개: 이미지 조회 허용 (공유 링크용)
+CREATE POLICY IF NOT EXISTS "thumbnails_select"
+  ON storage.objects FOR SELECT
+  TO public
+  USING (bucket_id = 'thumbnails');
+
+-- 인증된 사용자: 이미지 삭제 허용
+CREATE POLICY IF NOT EXISTS "thumbnails_delete"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'thumbnails');
+
+
+-- ──────────────────────────────────────────────────────────
 -- 완료 확인
 -- ──────────────────────────────────────────────────────────
 
@@ -177,5 +202,6 @@ BEGIN
   RAISE NOTICE '  - 트리거: updated_at 자동 갱신';
   RAISE NOTICE '  - RLS: 활성화 (folders 4개, prompts 5개 정책)';
   RAISE NOTICE '  - Realtime: prompts 테이블';
+  RAISE NOTICE '  - Storage: thumbnails 버킷 정책 (버킷은 대시보드에서 수동 생성)';
 END;
 $$;
