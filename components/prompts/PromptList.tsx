@@ -1,11 +1,10 @@
 'use client'
 
 // 프롬프트 목록 컴포넌트 - 그리드/리스트 전환, CRUD 모달 통합, 순서 정렬
-import { useState, useMemo } from 'react'
-import { Plus, LayoutGrid, List, Inbox, Loader2, X } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, LayoutGrid, List, Inbox, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogFooter
@@ -48,32 +47,8 @@ export function PromptList({
   const [editorOpen, setEditorOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Prompt | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-
-
   // 표시할 프롬프트: 검색 중이면 검색 결과, 아니면 폴더 내 목록
-  const basePrompts = searchQuery ? (searchResults || []) : prompts
-
-  // 태그 필터 적용
-  const displayPrompts = useMemo(() => {
-    if (selectedTags.length === 0) return basePrompts
-    return basePrompts.filter((p) =>
-      selectedTags.every((tag) => p.tags.includes(tag))
-    )
-  }, [basePrompts, selectedTags])
-
-  // 현재 목록에서 모든 태그 수집
-  const availableTags = useMemo(() => {
-    const tagSet = new Set<string>()
-    basePrompts.forEach((p) => p.tags.forEach((t) => tagSet.add(t)))
-    return Array.from(tagSet).sort()
-  }, [basePrompts])
-
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    )
-  }
+  const displayPrompts = searchQuery ? (searchResults || []) : prompts
 
   const handleSave = async (values: Omit<Prompt, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (editTarget) {
@@ -141,11 +116,6 @@ export function PromptList({
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               {displayPrompts.length}개의 프롬프트
-              {selectedTags.length > 0 && (
-                <span className="ml-1 text-primary">
-                  (태그 필터: {selectedTags.join(', ')})
-                </span>
-              )}
             </p>
           </div>
 
@@ -184,29 +154,6 @@ export function PromptList({
           </div>
         </div>
 
-        {/* 태그 필터 바 */}
-        {availableTags.length > 0 && (
-          <div className="flex items-center gap-2 px-6 pb-3 flex-wrap">
-            {selectedTags.length > 0 && (
-              <button
-                onClick={() => setSelectedTags([])}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-3 h-3" /> 초기화
-              </button>
-            )}
-            {availableTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant={selectedTags.includes(tag) ? 'default' : 'outline'}
-                className="cursor-pointer select-none text-xs hover:bg-primary/10 transition-colors"
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* 목록 */}
