@@ -17,7 +17,7 @@ import type { Folder as FolderType } from '@/lib/types'
 
 interface FolderTreeProps {
   selectedFolderId: string | null
-  onSelect: (id: string | null) => void
+  onSelect: (id: string | null, type?: 'prompt' | 'website') => void
 }
 
 type ModalState =

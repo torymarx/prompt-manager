@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   selectedFolderId: string | null
-  onSelectFolder: (id: string | null) => void
+  onSelectFolder: (id: string | null, type?: 'prompt' | 'website') => void
   collapsed: boolean
   onToggleCollapse: () => void
 }

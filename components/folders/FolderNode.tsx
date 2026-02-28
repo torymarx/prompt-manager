@@ -15,7 +15,7 @@ interface FolderNodeProps {
   depth: number
   selectedId: string | null
   directCounts: Record<string, number>
-  onSelect: (id: string) => void
+  onSelect: (id: string, type: 'prompt' | 'website') => void
   onCreateChild: (parentId: string) => void
   onRename: (folder: FolderType) => void
   onDelete: (folder: FolderType) => void
@@ -48,7 +48,7 @@ export function FolderNode({
           isSelected && 'bg-accent text-accent-foreground font-medium'
         )}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
-        onClick={() => onSelect(folder.id)}
+        onClick={() => onSelect(folder.id, folder.folder_type)}
       >
         {/* 펼치기/접기 화살표 */}
         <button
@@ -124,7 +124,7 @@ export function FolderNode({
               depth={depth + 1}
               selectedId={selectedId}
               directCounts={directCounts}
-              onSelect={onSelect}
+              onSelect={onSelect as (id: string, type: 'prompt' | 'website') => void}
               onCreateChild={onCreateChild}
               onRename={onRename}
               onDelete={onDelete}

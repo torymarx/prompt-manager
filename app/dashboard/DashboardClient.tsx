@@ -27,18 +27,23 @@ export default function DashboardClient() {
   }, [])// eslint-disable-line react-hooks/exhaustive-deps
   const { query, setQuery, results, searching } = useSearch()
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [selectedFolderType, setSelectedFolderType] = useState<'prompt' | 'website'>('prompt')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  // 선택된 폴더 정보
+  // 선택된 폴더 정보 (이름/브레드크럼용)
   const selectedFolder = folders.find((f) => f.id === selectedFolderId)
   const folderName = selectedFolderId
     ? (selectedFolder?.name || '폴더')
     : '전체 프롬프트'
 
+  // 폴더 선택 시 ID와 타입을 함께 저장 (useFolders 인스턴스 불일치 문제 방지)
+  const handleSelectFolder = (id: string | null, type?: 'prompt' | 'website') => {
+    setSelectedFolderId(id)
+    setSelectedFolderType(id ? (type ?? 'prompt') : 'prompt')
+  }
+
   // 선택된 폴더가 웹사이트 타입인지 확인
-  const isWebsiteFolder = selectedFolderId
-    ? selectedFolder?.folder_type === 'website'
-    : false
+  const isWebsiteFolder = selectedFolderId ? selectedFolderType === 'website' : false
 
   // 선택 폴더 + 모든 하위 폴더 ID 배열 (undefined = 전체 조회)
   const activeFolderIds = useMemo<string[] | undefined>(() => {
@@ -74,7 +79,7 @@ export default function DashboardClient() {
       {/* 좌측 사이드바 */}
       <Sidebar
         selectedFolderId={selectedFolderId}
-        onSelectFolder={setSelectedFolderId}
+        onSelectFolder={handleSelectFolder}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
