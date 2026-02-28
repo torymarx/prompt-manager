@@ -27,7 +27,7 @@ type ModalState =
   | null
 
 export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
-  const { folders, tree, loading, createFolder, renameFolder, deleteFolder } = useFolders()
+  const { folders, tree, loading, createFolder, renameFolder, deleteFolder, reorderFolders } = useFolders()
   const directCounts = usePromptCounts()
   const [modal, setModal] = useState<ModalState>(null)
   const [inputValue, setInputValue] = useState('')
@@ -104,7 +104,7 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
             위 + 버튼으로 만들어보세요.
           </p>
         ) : (
-          tree.map((folder) => (
+          tree.map((folder, idx) => (
             <FolderNode
               key={folder.id}
               folder={folder}
@@ -115,6 +115,17 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
               onCreateChild={openCreate}
               onRename={openRename}
               onDelete={(f) => setModal({ type: 'delete', folder: f })}
+              onMoveUp={idx > 0 ? () => {
+                const next = [...tree]
+                ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
+                reorderFolders(next)
+              } : undefined}
+              onMoveDown={idx < tree.length - 1 ? () => {
+                const next = [...tree]
+                ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+                reorderFolders(next)
+              } : undefined}
+              onReorder={reorderFolders}
             />
           ))
         )}

@@ -65,8 +65,9 @@ export function useFolders() {
     const [{ data, error }, websiteIds] = await Promise.all([
       supabase
         .from('folders')
-        .select('id, user_id, name, parent_id, created_at, updated_at')
-        .order('name'),
+        .select('id, user_id, name, parent_id, sort_order, created_at, updated_at')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true }),
       loadWebsiteIds(supabase),
     ])
 
@@ -149,5 +150,20 @@ export function useFolders() {
     await fetchFolders()
   }
 
-  return { folders, tree, loading, createFolder, renameFolder, deleteFolder, refetch: fetchFolders }
+  // 폴더 순서 저장 - siblings 배열 순서대로 sort_order 업데이트
+  const reorderFolders = async (siblings: Folder[]) => {
+    const results = await Promise.all(
+      siblings.map((f, i) =>
+        supabase.from('folders').update({ sort_order: i }).eq('id', f.id)
+      )
+    )
+    const failed = results.find((r) => r.error)
+    if (failed) {
+      toast.error('폴더 순서 저장 실패: ' + (failed.error?.message ?? '알 수 없는 오류'))
+    } else {
+      await fetchFolders()
+    }
+  }
+
+  return { folders, tree, loading, createFolder, renameFolder, deleteFolder, reorderFolders, refetch: fetchFolders }
 }

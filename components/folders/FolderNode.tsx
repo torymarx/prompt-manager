@@ -2,10 +2,10 @@
 
 // 단일 폴더 노드 - 재귀적으로 하위 폴더를 렌더링
 import { useState } from 'react'
-import { ChevronRight, Folder, FolderOpen, Globe, MoreHorizontal, FolderPlus, Pencil, Trash2 } from 'lucide-react'
+import { ChevronRight, ChevronUp, ChevronDown, Folder, FolderOpen, Globe, MoreHorizontal, FolderPlus, Pencil, Trash2 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuTrigger
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import type { Folder as FolderType } from '@/lib/types'
@@ -19,6 +19,9 @@ interface FolderNodeProps {
   onCreateChild: (parentId: string) => void
   onRename: (folder: FolderType) => void
   onDelete: (folder: FolderType) => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  onReorder: (siblings: FolderType[]) => Promise<void>
 }
 
 /** 해당 폴더 + 모든 하위 폴더의 프롬프트 수 합산 */
@@ -32,7 +35,7 @@ function getTotalCount(folder: FolderType, directCounts: Record<string, number>)
 
 export function FolderNode({
   folder, depth, selectedId, directCounts, onSelect,
-  onCreateChild, onRename, onDelete
+  onCreateChild, onRename, onDelete, onMoveUp, onMoveDown, onReorder
 }: FolderNodeProps) {
   const [open, setOpen] = useState(false)
   const hasChildren = folder.children && folder.children.length > 0
@@ -103,6 +106,16 @@ export function FolderNode({
               <Pencil className="w-4 h-4 mr-2" />
               이름 변경
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={!onMoveUp} onClick={(e) => { e.stopPropagation(); onMoveUp?.() }}>
+              <ChevronUp className="w-4 h-4 mr-2" />
+              위로 이동
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={!onMoveDown} onClick={(e) => { e.stopPropagation(); onMoveDown?.() }}>
+              <ChevronDown className="w-4 h-4 mr-2" />
+              아래로 이동
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => onDelete(folder)}
@@ -117,19 +130,33 @@ export function FolderNode({
       {/* 하위 폴더 재귀 렌더링 */}
       {open && hasChildren && (
         <div>
-          {folder.children!.map((child) => (
-            <FolderNode
-              key={child.id}
-              folder={child}
-              depth={depth + 1}
-              selectedId={selectedId}
-              directCounts={directCounts}
-              onSelect={onSelect as (id: string, type: 'prompt' | 'website') => void}
-              onCreateChild={onCreateChild}
-              onRename={onRename}
-              onDelete={onDelete}
-            />
-          ))}
+          {folder.children!.map((child, cidx) => {
+            const siblings = folder.children!
+            return (
+              <FolderNode
+                key={child.id}
+                folder={child}
+                depth={depth + 1}
+                selectedId={selectedId}
+                directCounts={directCounts}
+                onSelect={onSelect as (id: string, type: 'prompt' | 'website') => void}
+                onCreateChild={onCreateChild}
+                onRename={onRename}
+                onDelete={onDelete}
+                onMoveUp={cidx > 0 ? () => {
+                  const next = [...siblings]
+                  ;[next[cidx - 1], next[cidx]] = [next[cidx], next[cidx - 1]]
+                  onReorder(next)
+                } : undefined}
+                onMoveDown={cidx < siblings.length - 1 ? () => {
+                  const next = [...siblings]
+                  ;[next[cidx], next[cidx + 1]] = [next[cidx + 1], next[cidx]]
+                  onReorder(next)
+                } : undefined}
+                onReorder={onReorder}
+              />
+            )
+          })}
         </div>
       )}
     </div>

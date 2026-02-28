@@ -9,6 +9,7 @@ export type Folder = {
   name: string;
   parent_id: string | null;      // null이면 최상위 폴더
   folder_type: 'prompt' | 'website'; // RPC(get_my_folders)로 조회, DB에 저장
+  sort_order?: number;           // 수동 정렬 순서
   created_at: string;
   updated_at: string;
   children?: Folder[];           // 클라이언트에서 트리 구성 시 사용
