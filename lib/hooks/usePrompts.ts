@@ -117,13 +117,19 @@ export function usePrompts(folderIds?: string[]) {
     }
   }
 
-  // 드래그 후 순서 일괄 저장
+  // 순서 일괄 저장 - 낙관적 업데이트 후 DB 동기화
   const reorderPrompts = async (ordered: Prompt[]) => {
     setPrompts(ordered) // 낙관적 업데이트
-    const updates = ordered.map((p, i) =>
-      supabase.from('prompts').update({ sort_order: i }).eq('id', p.id)
+    const results = await Promise.all(
+      ordered.map((p, i) =>
+        supabase.from('prompts').update({ sort_order: i }).eq('id', p.id)
+      )
     )
-    await Promise.all(updates)
+    const failed = results.find((r) => r.error)
+    if (failed) {
+      toast.error('순서 저장에 실패했습니다. sort_order 컬럼을 확인해주세요.')
+      await fetchPrompts() // 실패 시 DB 상태로 복원
+    }
   }
 
   return { prompts, loading, createPrompt, updatePrompt, deletePrompt, toggleShare, reorderPrompts, refetch: fetchPrompts }
