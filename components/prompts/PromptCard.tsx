@@ -153,9 +153,9 @@ function ContentModal({ prompt, onClose, onEdit }: { prompt: Prompt; onClose: ()
             <div className="min-w-0">
               <h2 className="text-lg font-semibold truncate">{prompt.title}</h2>
               {prompt.tags.length > 0 && (
-                <div className="flex gap-1 flex-wrap mt-1.5">
+                <div className="flex gap-1 mt-1.5 overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
                   {prompt.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
+                    <Badge key={tag} variant="secondary" className="text-xs shrink-0">
                       <Tag className="w-2.5 h-2.5 mr-1" />{tag}
                     </Badge>
                   ))}
@@ -296,9 +296,9 @@ export function PromptCard({ prompt, viewMode, searchQuery, onMoveUp, onMoveDown
               <HighlightedText text={prompt.content} query={searchQuery} />
             </p>
             {prompt.tags.length > 0 && (
-              <div className="flex gap-1 mt-1 flex-wrap">
+              <div className="flex gap-1 mt-1 overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
                 {prompt.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
+                  <Badge key={tag} variant="secondary" className="text-xs shrink-0">
                     <HighlightedText text={tag} query={searchQuery} />
                   </Badge>
                 ))}
@@ -395,16 +395,13 @@ export function PromptCard({ prompt, viewMode, searchQuery, onMoveUp, onMoveDown
             <HighlightedText text={prompt.content} query={searchQuery} />
           </p>
           {prompt.tags.length > 0 && (
-            <div className="flex gap-1 flex-wrap">
-              {prompt.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
+            <div className="flex gap-1 overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+              {prompt.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs shrink-0">
                   <Tag className="w-2.5 h-2.5 mr-1" />
                   <HighlightedText text={tag} query={searchQuery} />
                 </Badge>
               ))}
-              {prompt.tags.length > 3 && (
-                <Badge variant="outline" className="text-xs">+{prompt.tags.length - 3}</Badge>
-              )}
             </div>
           )}
           {prompt.link_url && (
