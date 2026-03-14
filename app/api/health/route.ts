@@ -28,8 +28,8 @@ export async function GET() {
             status: 'active',
             count,
             timestamp: new Date().toISOString(),
-            schedule: '0 */4 * * *',
-            interval: 'every 4 hours (Supabase pause prevention)',
+            schedule: '0 0 * * *',
+            interval: 'once per day (Supabase pause prevention)',
         })
     } catch (error) {
         return NextResponse.json({ status: 'error', message: String(error) }, { status: 500 })
