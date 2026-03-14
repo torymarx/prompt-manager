@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS public.folders (
   name       TEXT NOT NULL,
   parent_id  UUID REFERENCES public.folders(id) ON DELETE CASCADE, -- 부모 삭제 시 자식도 삭제
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  disable_share BOOLEAN NOT NULL DEFAULT false                         -- 폴더 전체 공유 금지 여부 (추가)
 );
 
 -- 프롬프트 테이블
@@ -130,6 +131,7 @@ CREATE POLICY "anon_read_folders_via_collection_share"
       WHERE cs.user_id = folders.user_id
         AND cs.expires_at > now()
     )
+    AND folders.disable_share = false
   );
 
 
@@ -184,6 +186,7 @@ ALTER TABLE public.prompts ADD COLUMN IF NOT EXISTS disable_share BOOLEAN NOT NU
 
 -- folders 추가 컬럼
 ALTER TABLE public.folders ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.folders ADD COLUMN IF NOT EXISTS disable_share BOOLEAN NOT NULL DEFAULT false;
 
 
 -- ──────────────────────────────────────────────────────────
@@ -231,6 +234,7 @@ CREATE POLICY "anon_read_prompts_via_collection_share"
       WHERE cs.user_id = prompts.user_id
         AND cs.expires_at > now()
     )
+    AND prompts.disable_share = false
   );
 
 -- folders: 유효한 컬렉션 공유가 있는 사용자의 폴더 조회 (비로그인 포함)
@@ -244,6 +248,7 @@ CREATE POLICY "anon_read_folders_via_collection_share"
       WHERE cs.user_id = folders.user_id
         AND cs.expires_at > now()
     )
+    AND folders.disable_share = false
   );
 
 
