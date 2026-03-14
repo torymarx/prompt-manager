@@ -1,9 +1,7 @@
 'use client'
 
-// 프롬프트 생성/수정 모달 - 마크다운 분할 에디터 + 서식 툴바
+// 프롬프트 생성/수정 모달 - 서식 툴바 + 편집 모드
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogFooter
@@ -16,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   X, Loader2, Upload, Link,
   Bold, Italic, Code, List, Heading2,
-  LayoutPanelLeft, Maximize2, Hash, Plus,
+  Hash, Plus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -39,10 +37,8 @@ const EMPTY_FORM = {
   image_url: '',
   link_url: '',
   folder_id: null as string | null,
+  disable_share: false,
 }
-
-// 에디터 뷰 모드: 편집만 | 분할 | 미리보기만
-type EditorMode = 'edit' | 'split' | 'preview'
 
 export function PromptEditor({
   open, onClose, onSave, folders, currentFolderId, editTarget
@@ -52,7 +48,6 @@ export function PromptEditor({
   const [saving, setSaving] = useState(false)
   const [thumbnailTab, setThumbnailTab] = useState<'url' | 'file'>('url')
   const [uploading, setUploading] = useState(false)
-  const [editorMode, setEditorMode] = useState<EditorMode>('split')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
@@ -84,6 +79,7 @@ export function PromptEditor({
         image_url: editTarget.image_url || '',
         link_url: editTarget.link_url || '',
         folder_id: editTarget.folder_id,
+        disable_share: editTarget.disable_share || false,
       })
     } else {
       setForm({ ...EMPTY_FORM, folder_id: currentFolderId })
@@ -200,6 +196,7 @@ export function PromptEditor({
       image_url: form.image_url || null,
       link_url: form.link_url.trim() || null,
       folder_id: form.folder_id,
+      disable_share: form.disable_share,
       is_public: false,
       share_token: null,
     })
@@ -209,13 +206,13 @@ export function PromptEditor({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 py-4 border-b shrink-0">
-          <DialogTitle>{editTarget ? '프롬프트 수정' : '새 프롬프트 만들기'}</DialogTitle>
+      <DialogContent className="w-[95vw] max-w-2xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0 sm:rounded-2xl z-[100] border-none">
+        <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0">
+          <DialogTitle className="text-base sm:text-lg">{editTarget ? '프롬프트 수정' : '새 프롬프트 만들기'}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {/* 제목 */}
             <div className="space-y-1.5">
               <Label>제목 *</Label>
@@ -223,15 +220,16 @@ export function PromptEditor({
                 value={form.title}
                 onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                 placeholder="프롬프트 제목을 입력하세요"
+                className="h-11 sm:h-9 text-base sm:text-sm"
               />
             </div>
 
-            {/* 폴더 선택 + 참조 링크 (2열) */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* 폴더 선택 + 참조 링크 (모바일 1열, SM이상 2열) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-1.5">
                 <Label>폴더</Label>
                 <select
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 sm:py-2 text-base sm:text-sm"
                   value={form.folder_id || ''}
                   onChange={(e) => setForm((p) => ({ ...p, folder_id: e.target.value || null }))}
                 >
@@ -249,148 +247,89 @@ export function PromptEditor({
                     value={form.link_url}
                     onChange={(e) => setForm((p) => ({ ...p, link_url: e.target.value }))}
                     placeholder="https://example.com"
-                    className="pl-8"
+                    className="pl-8 h-11 sm:h-9 text-base sm:text-sm"
                   />
                 </div>
               </div>
             </div>
 
-            {/* 내용 - 분할 에디터 */}
+            {/* 내용 - 편집 에디터 */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>내용 * (마크다운 지원)</Label>
-                {/* 뷰 모드 전환 */}
-                <div className="flex items-center rounded-md border overflow-hidden">
-                  <Button
-                    type="button"
-                    variant={editorMode === 'edit' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    className="rounded-none h-7 px-2 text-xs gap-1"
-                    onClick={() => setEditorMode('edit')}
-                    title="편집만"
-                  >
-                    <Code className="w-3 h-3" /> 편집
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={editorMode === 'split' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    className="rounded-none h-7 px-2 text-xs gap-1 border-x"
-                    onClick={() => setEditorMode('split')}
-                    title="분할 화면"
-                  >
-                    <LayoutPanelLeft className="w-3 h-3" /> 분할
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={editorMode === 'preview' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    className="rounded-none h-7 px-2 text-xs gap-1"
-                    onClick={() => setEditorMode('preview')}
-                    title="미리보기만"
-                  >
-                    <Maximize2 className="w-3 h-3" /> 미리보기
-                  </Button>
-                </div>
+              <Label>내용 * (마크다운 지원)</Label>
+
+              {/* 서식 툴바 - 모바일에서 터치 타겟 크게 */}
+              <div className="flex items-center gap-0.5 sm:gap-1 p-1 rounded-md border bg-muted/30 overflow-x-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-7 sm:w-7 shrink-0"
+                  title="굵게"
+                  onClick={() => insertMarkdown('**', '**', '굵은 텍스트')}
+                >
+                  <Bold className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-7 sm:w-7 shrink-0"
+                  title="기울임"
+                  onClick={() => insertMarkdown('*', '*', '기울임 텍스트')}
+                >
+                  <Italic className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-7 sm:w-7 shrink-0"
+                  title="인라인 코드"
+                  onClick={() => insertMarkdown('`', '`', '코드')}
+                >
+                  <Code className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                </Button>
+                <div className="w-px h-5 bg-border mx-0.5 sm:mx-1 shrink-0" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-7 sm:w-7 shrink-0"
+                  title="제목 (H2)"
+                  onClick={() => insertMarkdown('\n## ', '', '제목')}
+                >
+                  <Heading2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-7 sm:w-7 shrink-0"
+                  title="목록"
+                  onClick={() => insertMarkdown('\n- ', '', '항목')}
+                >
+                  <List className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                </Button>
+                <div className="w-px h-5 bg-border mx-0.5 sm:mx-1 shrink-0" />
+                <button
+                  type="button"
+                  className="h-9 sm:h-7 px-2 sm:px-2 text-xs font-mono text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted rounded transition-colors shrink-0"
+                  title="코드 블록"
+                  onClick={() => insertMarkdown('\n```\n', '\n```', '코드 블록')}
+                >
+                  {'```'}
+                </button>
               </div>
 
-              {/* 서식 툴바 (편집 모드일 때만 표시) */}
-              {editorMode !== 'preview' && (
-                <div className="flex items-center gap-1 p-1 rounded-md border bg-muted/30">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="굵게 (Ctrl+B)"
-                    onClick={() => insertMarkdown('**', '**', '굵은 텍스트')}
-                  >
-                    <Bold className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="기울임 (Ctrl+I)"
-                    onClick={() => insertMarkdown('*', '*', '기울임 텍스트')}
-                  >
-                    <Italic className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="인라인 코드"
-                    onClick={() => insertMarkdown('`', '`', '코드')}
-                  >
-                    <Code className="w-3.5 h-3.5" />
-                  </Button>
-                  <div className="w-px h-4 bg-border mx-1" />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="제목 (H2)"
-                    onClick={() => insertMarkdown('\n## ', '', '제목')}
-                  >
-                    <Heading2 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="목록"
-                    onClick={() => insertMarkdown('\n- ', '', '항목')}
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </Button>
-                  <div className="w-px h-4 bg-border mx-1" />
-                  <button
-                    type="button"
-                    className="h-7 px-2 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
-                    title="코드 블록"
-                    onClick={() => insertMarkdown('\n```\n', '\n```', '코드 블록')}
-                  >
-                    {'```'}
-                  </button>
-                </div>
-              )}
-
               {/* 에디터 영역 */}
-              <div className={cn(
-                'grid rounded-md border overflow-hidden',
-                editorMode === 'split' ? 'grid-cols-2' : 'grid-cols-1'
-              )}>
-                {/* 편집기 */}
-                {editorMode !== 'preview' && (
-                  <Textarea
-                    ref={textareaRef}
-                    value={form.content}
-                    onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
-                    placeholder="마크다운으로 프롬프트를 작성하세요..."
-                    className={cn(
-                      'min-h-[280px] font-mono text-sm resize-none rounded-none border-0 focus-visible:ring-0',
-                      editorMode === 'split' && 'border-r'
-                    )}
-                  />
-                )}
-
-                {/* 미리보기 */}
-                {editorMode !== 'edit' && (
-                  <div className="min-h-[280px] p-4 prose prose-sm dark:prose-invert max-w-none overflow-auto bg-muted/20">
-                    {form.content ? (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {form.content}
-                      </ReactMarkdown>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">미리보기할 내용이 없습니다.</p>
-                    )}
-                  </div>
-                )}
+              <div className="rounded-md border overflow-hidden">
+                <Textarea
+                  ref={textareaRef}
+                  value={form.content}
+                  onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
+                  placeholder="마크다운으로 프롬프트를 작성하세요..."
+                  className="min-h-[200px] sm:min-h-[280px] font-mono text-sm resize-none rounded-none border-0 focus-visible:ring-0"
+                />
               </div>
             </div>
 
@@ -438,9 +377,10 @@ export function PromptEditor({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag() }
                   }}
-                  placeholder="태그 입력 후 Enter (예: GPT, 글쓰기)"
+                  placeholder="태그 입력 후 Enter"
+                  className="h-11 sm:h-9 text-base sm:text-sm"
                 />
-                <Button type="button" variant="outline" onClick={addTag}>추가</Button>
+                <Button type="button" variant="outline" onClick={addTag} className="h-11 sm:h-9 shrink-0">추가</Button>
               </div>
               {form.tags.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap mt-2">
@@ -541,11 +481,28 @@ export function PromptEditor({
           </div>
         </div>
 
-        <DialogFooter className="border-t px-6 py-4 shrink-0">
-          <Button variant="outline" onClick={onClose}>취소</Button>
+        {/* 하단 옵션 영역 (저장/취소 위) */}
+        <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 shrink-0 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="disable-share"
+              checked={form.disable_share}
+              onChange={(e) => setForm(p => ({ ...p, disable_share: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="disable-share" className="text-sm cursor-pointer select-none font-medium">
+              공유 제외 (체크 시 모든 스토어/링크 공유 금지)
+            </Label>
+          </div>
+        </div>
+
+        <DialogFooter className="border-t px-4 sm:px-6 py-3 sm:py-4 shrink-0 flex flex-row gap-2 justify-end">
+          <Button variant="outline" onClick={onClose} className="h-11 sm:h-9 flex-1 sm:flex-none">취소</Button>
           <Button
             onClick={handleSave}
             disabled={!form.title.trim() || !form.content.trim() || saving}
+            className="h-11 sm:h-9 flex-1 sm:flex-none"
           >
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {editTarget ? '저장' : '만들기'}

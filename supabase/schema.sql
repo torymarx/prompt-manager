@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.prompts (
   image_url    TEXT,
   is_public    BOOLEAN NOT NULL DEFAULT false,
   share_token  UUID UNIQUE,                                            -- 공유 링크 토큰
+  disable_share BOOLEAN NOT NULL DEFAULT false,                        -- 전체/개별 공유 금지 여부
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -117,6 +118,20 @@ CREATE POLICY "folders_delete"
   TO authenticated
   USING (user_id = auth.uid());
 
+-- SELECT: 유효한 컬렉션 공유 토큰이 있는 사용자의 폴더 (비로그인도 접근 가능)
+-- 컬렉션 공유 뷰어에서 폴더 트리를 표시하기 위해 필요
+DROP POLICY IF EXISTS "anon_read_folders_via_collection_share" ON public.folders;
+CREATE POLICY "anon_read_folders_via_collection_share"
+  ON public.folders FOR SELECT
+  TO anon, authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.collection_shares cs
+      WHERE cs.user_id = folders.user_id
+        AND cs.expires_at > now()
+    )
+  );
+
 
 -- ──────────────────────────────────────────────────────────
 -- 6. prompts RLS 정책
@@ -159,7 +174,81 @@ CREATE POLICY "prompts_delete"
 
 
 -- ──────────────────────────────────────────────────────────
--- 7. Realtime 활성화 (usePromptCounts 훅 실시간 동기화용)
+-- 7. 추가 컬럼 (초기 schema 이후 마이그레이션)
+-- ──────────────────────────────────────────────────────────
+
+-- prompts 추가 컬럼
+ALTER TABLE public.prompts ADD COLUMN IF NOT EXISTS link_url TEXT;
+ALTER TABLE public.prompts ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.prompts ADD COLUMN IF NOT EXISTS disable_share BOOLEAN NOT NULL DEFAULT false;
+
+-- folders 추가 컬럼
+ALTER TABLE public.folders ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+
+
+-- ──────────────────────────────────────────────────────────
+-- 8. 컬렉션 공유 테이블
+-- ──────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.collection_shares (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  token      TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + INTERVAL '2 days'),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.collection_shares ENABLE ROW LEVEL SECURITY;
+
+-- 본인 공유 전체 관리
+DROP POLICY IF EXISTS "collection_shares_all_own" ON public.collection_shares;
+CREATE POLICY "collection_shares_all_own"
+  ON public.collection_shares FOR ALL
+  TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- 비로그인: 만료되지 않은 공유만 조회 (공유 페이지 검증용)
+DROP POLICY IF EXISTS "collection_shares_select_valid" ON public.collection_shares;
+CREATE POLICY "collection_shares_select_valid"
+  ON public.collection_shares FOR SELECT
+  TO anon, authenticated
+  USING (expires_at > now());
+
+
+-- ──────────────────────────────────────────────────────────
+-- 9. 컬렉션 공유 기반 prompts / folders 읽기 정책
+-- ──────────────────────────────────────────────────────────
+
+-- prompts: 유효한 컬렉션 공유가 있는 사용자의 프롬프트 전체 조회 (비로그인 포함)
+DROP POLICY IF EXISTS "anon_read_prompts_via_collection_share" ON public.prompts;
+CREATE POLICY "anon_read_prompts_via_collection_share"
+  ON public.prompts FOR SELECT
+  TO anon, authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.collection_shares cs
+      WHERE cs.user_id = prompts.user_id
+        AND cs.expires_at > now()
+    )
+  );
+
+-- folders: 유효한 컬렉션 공유가 있는 사용자의 폴더 조회 (비로그인 포함)
+DROP POLICY IF EXISTS "anon_read_folders_via_collection_share" ON public.folders;
+CREATE POLICY "anon_read_folders_via_collection_share"
+  ON public.folders FOR SELECT
+  TO anon, authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.collection_shares cs
+      WHERE cs.user_id = folders.user_id
+        AND cs.expires_at > now()
+    )
+  );
+
+
+-- ──────────────────────────────────────────────────────────
+-- 10. Realtime 활성화 (usePromptCounts 훅 실시간 동기화용)
 -- ──────────────────────────────────────────────────────────
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.prompts;

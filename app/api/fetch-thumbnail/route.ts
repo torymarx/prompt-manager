@@ -13,6 +13,28 @@ interface MicrolinkResponse {
   }
 }
 
+// 내부 네트워크 IP 패턴 (SSRF 방어)
+const BLOCKED_PATTERNS = [
+  /^https?:\/\/localhost/i,
+  /^https?:\/\/127\./,
+  /^https?:\/\/0\./,
+  /^https?:\/\/10\./,
+  /^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./,
+  /^https?:\/\/192\.168\./,
+  /^https?:\/\/169\.254\./,
+  /^https?:\/\/\[::1\]/,
+]
+
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false
+    return !BLOCKED_PATTERNS.some((p) => p.test(url))
+  } catch {
+    return false
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // 인증된 사용자만 허용
@@ -24,7 +46,7 @@ export async function POST(request: Request) {
 
     const { url } = await request.json() as { url?: string }
 
-    if (!url || !url.startsWith('http')) {
+    if (!url || !isSafeUrl(url)) {
       return NextResponse.json({ thumbnail: null, title: null }, { status: 400 })
     }
 

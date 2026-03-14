@@ -45,7 +45,17 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
 
   const openCreate = (parentId: string | null) => {
     setInputValue('')
-    setNewFolderType('prompt')
+    // 부모 폴더가 있으면 해당 타입 상속
+    if (parentId) {
+      const parent = folders.find(f => f.id === parentId)
+      if (parent) {
+        setNewFolderType(parent.folder_type)
+      } else {
+        setNewFolderType('prompt')
+      }
+    } else {
+      setNewFolderType('prompt')
+    }
     setModal({ type: 'create', parentId })
   }
 
@@ -57,7 +67,7 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
   const handleConfirm = async () => {
     if (!modal) return
     if (modal.type === 'create' && inputValue.trim()) {
-      await createFolder(inputValue.trim(), modal.parentId, newFolderType)
+      await createFolder(inputValue.trim(), modal.parentId, newFolderType, true)
     } else if (modal.type === 'rename' && inputValue.trim()) {
       await renameFolder(modal.folder.id, inputValue.trim())
     } else if (modal.type === 'delete') {
@@ -117,12 +127,12 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
               onDelete={(f) => setModal({ type: 'delete', folder: f })}
               onMoveUp={idx > 0 ? () => {
                 const next = [...tree]
-                ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
+                  ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
                 reorderFolders(next)
               } : undefined}
               onMoveDown={idx < tree.length - 1 ? () => {
                 const next = [...tree]
-                ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+                  ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
                 reorderFolders(next)
               } : undefined}
               onReorder={reorderFolders}
@@ -138,6 +148,11 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
             <DialogTitle>
               {modal?.type === 'create' ? '새 폴더 만들기' : '폴더 이름 변경'}
             </DialogTitle>
+            {modal?.type === 'create' && modal.parentId && (
+              <p className="text-[10px] text-blue-500 font-medium">
+                * 부모 폴더의 성격({newFolderType === 'website' ? '웹사이트' : '프롬프트'})을 그대로 이어받습니다! 😎
+              </p>
+            )}
           </DialogHeader>
 
           {/* 폴더 타입 선택 (생성 시에만) */}

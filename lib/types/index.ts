@@ -28,6 +28,7 @@ export type Prompt = {
   sort_order?: number;      // 수동 정렬 순서 (선택, DB default 0)
   is_public: boolean;
   share_token: string | null;
+  disable_share: boolean;
   created_at: string;
   updated_at: string;
 };

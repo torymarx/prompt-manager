@@ -19,7 +19,8 @@ export function useSearch() {
   const supabase = createClient()
 
   const search = useCallback(async (q: string) => {
-    const trimmed = q.trim()
+    // 입력 길이 제한 (100자 초과 무시)
+    const trimmed = q.trim().slice(0, 100)
     if (!trimmed) {
       setResults([])
       return
@@ -52,13 +53,16 @@ export function useSearch() {
       return
     }
 
+    // LIKE 와일드카드 이스케이프 (% _ 문자 오남용 방지)
+    const escapedLike = trimmed.replace(/%/g, '\\%').replace(/_/g, '\\_')
+
     // 일반 검색: 제목·내용·태그 모두 검색
     const [{ data: textData }, { data: tagData }] = await Promise.all([
       // 제목·내용 텍스트 검색
       supabase
         .from('prompts')
         .select('*')
-        .or(`title.ilike.%${trimmed}%,content.ilike.%${trimmed}%`)
+        .or(`title.ilike.%${escapedLike}%,content.ilike.%${escapedLike}%`)
         .order('created_at', { ascending: false })
         .limit(50),
 

@@ -91,12 +91,21 @@ export function useFolders() {
   const createFolder = async (
     name: string,
     parentId: string | null = null,
-    type: 'prompt' | 'website' = 'prompt'
+    type: 'prompt' | 'website' = 'prompt',
+    inheritType: boolean = false
   ) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       toast.error('로그인이 필요합니다.')
       return null
+    }
+
+    let finalType = type
+    if (inheritType && parentId) {
+      const parent = folders.find(f => f.id === parentId)
+      if (parent) {
+        finalType = parent.folder_type
+      }
     }
 
     const { data, error } = await supabase
@@ -112,7 +121,7 @@ export function useFolders() {
     }
 
     // 웹사이트 폴더면 user_metadata에 ID 추가
-    if (type === 'website') {
+    if (finalType === 'website') {
       const ids = await loadWebsiteIds(supabase)
       ids.add(data.id)
       await saveWebsiteIds(supabase, ids)
@@ -120,7 +129,7 @@ export function useFolders() {
 
     toast.success(`"${name}" 폴더가 생성되었습니다.`)
     await fetchFolders()
-    return { ...data, folder_type: type } as Folder
+    return { ...data, folder_type: finalType } as Folder
   }
 
   // 폴더 이름 변경

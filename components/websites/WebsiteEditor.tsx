@@ -30,6 +30,7 @@ export function WebsiteEditor({ open, onClose, onSave, currentFolderId, editTarg
   const [thumbnail, setThumbnail] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [disableShare, setDisableShare] = useState(false)
   const [fetching, setFetching] = useState(false)
   const [saving, setSaving] = useState(false)
   const tagInputRef = useRef<HTMLInputElement>(null)
@@ -42,11 +43,13 @@ export function WebsiteEditor({ open, onClose, onSave, currentFolderId, editTarg
       setTitle(editTarget.title)
       setThumbnail(editTarget.image_url)
       setTags(editTarget.tags ?? [])
+      setDisableShare(editTarget.disable_share || false)
     } else {
       setUrl('')
       setTitle('')
       setThumbnail(null)
       setTags([])
+      setDisableShare(false)
     }
     setTagInput('')
   }, [editTarget, open])
@@ -109,6 +112,7 @@ export function WebsiteEditor({ open, onClose, onSave, currentFolderId, editTarg
       link_url: null,
       tags,
       folder_id: currentFolderId,
+      disable_share: disableShare,
       is_public: false,
       share_token: null,
     })
@@ -267,6 +271,22 @@ export function WebsiteEditor({ open, onClose, onSave, currentFolderId, editTarg
                 placeholder={tags.length === 0 ? '#태그 입력' : ''}
                 className="flex-1 min-w-[80px] bg-transparent outline-none text-sm placeholder:text-muted-foreground/50"
               />
+            </div>
+          </div>
+
+          {/* ⑤ 하단 옵션 영역 */}
+          <div className="px-6 py-3 border-t bg-muted/30 shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="disable-share-web"
+                checked={disableShare}
+                onChange={(e) => setDisableShare(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="disable-share-web" className="text-sm cursor-pointer select-none font-medium">
+                공유 제외 (체크 시 모든 스토어/링크 공유 금지)
+              </label>
             </div>
           </div>
         </div>

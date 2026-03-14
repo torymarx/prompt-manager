@@ -120,8 +120,43 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* 모바일 터치 하이라이트 제거 */
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
+    /* iOS 모멘텀 스크롤 */
+    -webkit-overflow-scrolling: touch;
+    /* 텍스트 크기 자동 조정 방지 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* 스크롤 가능한 요소에 모멘텀 스크롤 적용 */
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
+  }
+  /* 모달/다이얼로그 내부 스크롤 영역 터치 강화 */
+  [data-radix-dialog-content] .overflow-y-auto,
+  .fixed .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
+  }
+  /* 버튼 기본 터치 동작 개선 */
+  button, [role="button"] {
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  /* 입력 필드 확대 방지 (iOS) - 16px 이상일 때만 */
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+  @media (min-width: 640px) {
+    input, select, textarea {
+      font-size: inherit;
+    }
   }
 }

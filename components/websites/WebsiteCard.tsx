@@ -1,9 +1,10 @@
 'use client'
 
 // 웹사이트 북마크 카드 - 썸네일 + 제목 + 도메인 + 외부 링크
-import { Globe, ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import { Globe, ExternalLink, Pencil, Trash2, Link2Off } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Prompt } from '@/lib/types'
+import { useSmartCrop } from '@/lib/hooks/useSmartCrop'
 
 interface WebsiteCardProps {
   website: Prompt
@@ -16,6 +17,8 @@ function getDomain(url: string): string {
 }
 
 export function WebsiteCard({ website, onEdit, onDelete }: WebsiteCardProps) {
+  const smartPosition = useSmartCrop(website.image_url ?? undefined)
+
   return (
     <div className="group relative flex flex-col rounded-xl border bg-card hover:border-primary/50 transition-all hover:shadow-md overflow-hidden">
       {/* 썸네일 - 클릭 시 새 탭 열기 */}
@@ -31,6 +34,7 @@ export function WebsiteCard({ website, onEdit, onDelete }: WebsiteCardProps) {
             src={website.image_url}
             alt={website.title}
             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            style={{ objectPosition: smartPosition }}
             onError={(e) => {
               const el = e.currentTarget
               el.style.display = 'none'
@@ -41,10 +45,9 @@ export function WebsiteCard({ website, onEdit, onDelete }: WebsiteCardProps) {
         {/* 썸네일 없거나 에러 시 플레이스홀더 */}
         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 ${website.image_url ? 'hidden' : ''}`}>
           <Globe className="w-10 h-10 text-muted-foreground/30" />
-          <span className="text-xs text-muted-foreground/50">{getDomain(website.content)}</span>
         </div>
         {/* 호버 시 열기 오버레이 */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors flex items-center justify-center">
           <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5">
             <ExternalLink className="w-3.5 h-3.5" /> 열기
           </div>
@@ -52,11 +55,18 @@ export function WebsiteCard({ website, onEdit, onDelete }: WebsiteCardProps) {
       </a>
 
       {/* 정보 + 액션 */}
-      <div className="flex items-start gap-2 p-3">
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate leading-snug">{website.title}</p>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">{getDomain(website.content)}</p>
+      <div className="flex items-start gap-2 p-3 relative h-14 sm:h-16">
+        <div className="flex-1 min-w-0 pr-6 flex items-center h-full">
+          <p className="font-medium text-sm line-clamp-2 leading-snug">{website.title}</p>
         </div>
+
+        {/* 공유 제외 뱃지 (우측 상단 절대배치) */}
+        {website.disable_share && (
+          <div className="absolute top-3 right-3 text-muted-foreground/40" title="공유 제외됨">
+            <Link2Off className="w-4 h-4" />
+          </div>
+        )}
+
         {/* 호버 시 액션 버튼 */}
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
           <Button

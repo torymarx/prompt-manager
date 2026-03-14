@@ -91,6 +91,13 @@ export function usePrompts(folderIds?: string[]) {
   // 공유 토글 - isPublic=true 시 토큰 생성, false 시 비공개로 전환
   const toggleShare = async (id: string, isPublic: boolean) => {
     if (isPublic) {
+      // 공유 대상이 공유 금지 설정되어 있는지 확인
+      const { data: prompt } = await supabase.from('prompts').select('disable_share').eq('id', id).single()
+      if (prompt?.disable_share) {
+        toast.error('공유가 제외된 항목입니다.')
+        return null
+      }
+
       const share_token = crypto.randomUUID()
       const { error } = await supabase
         .from('prompts')

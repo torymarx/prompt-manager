@@ -109,9 +109,9 @@ export function PromptList({
     <div className="flex flex-col h-full">
       {/* 헤더 */}
       <div className="flex flex-col border-b shrink-0">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg font-semibold truncate">
               {searchQuery ? `"${searchQuery}" 검색 결과` : folderName}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -119,13 +119,13 @@ export function PromptList({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* 뷰 전환 */}
             <div className="flex rounded-md border overflow-hidden">
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="rounded-none h-8 w-8"
+                className="rounded-none h-9 w-9 sm:h-8 sm:w-8"
                 onClick={() => setViewMode('grid')}
                 title="그리드 뷰"
               >
@@ -134,7 +134,7 @@ export function PromptList({
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="rounded-none h-8 w-8"
+                className="rounded-none h-9 w-9 sm:h-8 sm:w-8"
                 onClick={() => setViewMode('list')}
                 title="리스트 뷰"
               >
@@ -146,10 +146,11 @@ export function PromptList({
             <Button
               size="sm"
               onClick={() => { setEditTarget(null); setEditorOpen(true) }}
-              className="gap-1.5"
+              className="gap-1.5 h-9 sm:h-8 px-3 text-sm"
             >
               <Plus className="w-4 h-4" />
-              새 프롬프트
+              <span className="hidden sm:inline">새 프롬프트</span>
+              <span className="sm:hidden">추가</span>
             </Button>
           </div>
         </div>
@@ -180,7 +181,7 @@ export function PromptList({
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-6">
             {displayPrompts.map((prompt, idx) => (
               <PromptCard
                 key={prompt.id}

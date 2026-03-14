@@ -5,8 +5,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Next.js 16: proxy.ts + export function proxy (기존 middleware.ts/function middleware는 deprecated)
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -37,7 +36,7 @@ export async function proxy(request: NextRequest) {
     user = data?.user ?? null
   } catch (e) {
     // Supabase 연결 오류 시 인증되지 않은 것으로 처리
-    console.error('[proxy] Supabase auth error:', e)
+    console.error('[middleware] Supabase auth error:', e)
     user = null
   }
 

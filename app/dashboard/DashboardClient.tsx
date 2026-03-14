@@ -1,7 +1,7 @@
 'use client'
 
 // 대시보드 실제 UI - 사이드바(폴더 트리) + 헤더(검색/테마/로그아웃) + 프롬프트 목록
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -9,10 +9,11 @@ import { PromptList } from '@/components/prompts/PromptList'
 import { WebsiteList } from '@/components/websites/WebsiteList'
 import { SearchBar } from '@/components/search/SearchBar'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { CollectionShareButton } from '@/components/collection/CollectionShareButton'
 import { Button } from '@/components/ui/button'
 import { useSearch } from '@/lib/hooks/useSearch'
 import { useFolders, getDescendantIds } from '@/lib/hooks/useFolders'
-import { LogOut, ChevronRight, User } from 'lucide-react'
+import { LogOut, ChevronRight, BrainCircuit, User } from 'lucide-react'
 
 export default function DashboardClient() {
   const router = useRouter()
@@ -25,33 +26,55 @@ export default function DashboardClient() {
       setUserEmail(data.user?.email ?? null)
     })
   }, [])// eslint-disable-line react-hooks/exhaustive-deps
+
   const { query, setQuery, results, searching } = useSearch()
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [selectedFolderType, setSelectedFolderType] = useState<'prompt' | 'website'>('prompt')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
-  // 선택된 폴더 정보 (이름/브레드크럼용)
+  // 스와이프 감지용 ref
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current
+    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+    // 화면 왼쪽 가장자리(30px 이내)에서 시작한 오른쪽 스와이프만 사이드바 열기
+    // 수직 이동이 수평 이동보다 크면 스크롤로 간주하여 무시
+    if (touchStartX.current < 30 && deltaX > 50 && deltaY < deltaX) {
+      setMobileSidebarOpen(true)
+    }
+    // 사이드바가 열린 상태에서 왼쪽 스와이프로 닫기
+    if (mobileSidebarOpen && deltaX < -60 && deltaY < Math.abs(deltaX)) {
+      setMobileSidebarOpen(false)
+    }
+  }
+
+  // 선택된 폴더 정보
   const selectedFolder = folders.find((f) => f.id === selectedFolderId)
   const folderName = selectedFolderId
     ? (selectedFolder?.name || '폴더')
     : '전체 프롬프트'
 
-  // 폴더 선택 시 ID와 타입을 함께 저장 (useFolders 인스턴스 불일치 문제 방지)
   const handleSelectFolder = (id: string | null, type?: 'prompt' | 'website') => {
     setSelectedFolderId(id)
     setSelectedFolderType(id ? (type ?? 'prompt') : 'prompt')
+    setMobileSidebarOpen(false)
   }
 
-  // 선택된 폴더가 웹사이트 타입인지 확인
   const isWebsiteFolder = selectedFolderId ? selectedFolderType === 'website' : false
 
-  // 선택 폴더 + 모든 하위 폴더 ID 배열 (undefined = 전체 조회)
   const activeFolderIds = useMemo<string[] | undefined>(() => {
     if (!selectedFolderId) return undefined
     return [selectedFolderId, ...getDescendantIds(selectedFolderId, folders)]
   }, [selectedFolderId, folders])
 
-  // 브레드크럼: 상위 폴더까지 경로 추적
   const buildBreadcrumb = (folderId: string | null): string[] => {
     if (!folderId) return []
     const crumbs: string[] = []
@@ -75,24 +98,55 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* 좌측 사이드바 */}
-      <Sidebar
-        selectedFolderId={selectedFolderId}
-        onSelectFolder={handleSelectFolder}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-      />
+    <div className="flex h-dvh overflow-hidden bg-background">
+      {/* 모바일 오버레이 배경 */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* 사이드바 */}
+      <div className={`
+        fixed inset-y-0 left-0 z-40 md:relative md:z-auto
+        transition-transform duration-300 ease-in-out
+        ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
+        <Sidebar
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={handleSelectFolder}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
+        />
+      </div>
 
       {/* 우측 메인 영역 */}
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+      <div
+        className="flex flex-col flex-1 overflow-hidden min-w-0"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* 상단 헤더 */}
-        <header className="flex items-center gap-3 px-6 py-3 border-b bg-background/80 backdrop-blur-sm shrink-0">
+        <header className="flex items-center gap-2 px-3 sm:px-6 py-2 sm:py-3 border-b bg-background/80 backdrop-blur-sm shrink-0">
+
+          {/* 모바일: 로고 아이콘 탭으로 사이드바 열기 (햄버거 버튼 대체) */}
+          <button
+            className="md:hidden shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-primary active:opacity-80 transition-opacity"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="메뉴 열기"
+          >
+            <BrainCircuit className="w-4 h-4 text-primary-foreground" />
+          </button>
+
           {/* 브레드크럼 */}
           <div className="flex items-center gap-1 text-sm text-muted-foreground min-w-0 flex-1">
             <button
               onClick={() => setSelectedFolderId(null)}
-              className="hover:text-foreground transition-colors shrink-0 font-medium"
+              className="hover:text-foreground active:text-foreground transition-colors shrink-0 font-medium min-h-[36px] px-1 flex items-center"
             >
               전체
             </button>
@@ -107,12 +161,14 @@ export default function DashboardClient() {
           </div>
 
           {/* 검색 + 액션 */}
-          <div className="flex items-center gap-2 shrink-0">
-            <SearchBar value={query} onChange={setQuery} />
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div className="w-28 sm:w-48 md:w-auto">
+              <SearchBar value={query} onChange={setQuery} />
+            </div>
+            <CollectionShareButton />
             <ThemeToggle />
-            {/* 로그인 유저 이메일 */}
             {userEmail && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs text-muted-foreground max-w-[180px]">
+              <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs text-muted-foreground max-w-[180px]">
                 <User className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{userEmail}</span>
               </div>
@@ -122,13 +178,14 @@ export default function DashboardClient() {
               size="icon"
               onClick={handleLogout}
               title="로그아웃"
+              className="h-9 w-9 sm:h-10 sm:w-10"
             >
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </header>
 
-        {/* 폴더 타입에 따라 웹사이트 목록 또는 프롬프트 목록 표시 */}
+        {/* 컨텐츠 */}
         <main className="flex-1 overflow-hidden">
           {isWebsiteFolder ? (
             <WebsiteList
