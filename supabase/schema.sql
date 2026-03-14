@@ -266,19 +266,22 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.prompts;
 -- ──────────────────────────────────────────────────────────
 
 -- 인증된 사용자: 업로드 허용
-CREATE POLICY IF NOT EXISTS "thumbnails_insert"
+DROP POLICY IF EXISTS "thumbnails_insert" ON storage.objects;
+CREATE POLICY "thumbnails_insert"
   ON storage.objects FOR INSERT
   TO authenticated
   WITH CHECK (bucket_id = 'thumbnails');
 
 -- 전체 공개: 이미지 조회 허용 (공유 링크용)
-CREATE POLICY IF NOT EXISTS "thumbnails_select"
+DROP POLICY IF EXISTS "thumbnails_select" ON storage.objects;
+CREATE POLICY "thumbnails_select"
   ON storage.objects FOR SELECT
   TO public
   USING (bucket_id = 'thumbnails');
 
 -- 인증된 사용자: 이미지 삭제 허용
-CREATE POLICY IF NOT EXISTS "thumbnails_delete"
+DROP POLICY IF EXISTS "thumbnails_delete" ON storage.objects;
+CREATE POLICY "thumbnails_delete"
   ON storage.objects FOR DELETE
   TO authenticated
   USING (bucket_id = 'thumbnails');
