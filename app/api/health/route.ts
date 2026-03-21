@@ -3,8 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic' // 정적 캐시 방지 (매번 DB 호출)
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        // 보안 검증: Vercel Cron 또는 GitHub Actions에서 보낸 시크릿 확인
+        const authHeader = request.headers.get('authorization')
+        const cronSecret = process.env.CRON_SECRET
+
+        // 시크릿이 설정되어 있는데 일치하지 않는 경우만 차단 (유연한 대응)
+        if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+            return NextResponse.json({ status: 'unauthorized' }, { status: 401 })
+        }
+
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -14,10 +23,11 @@ export async function GET() {
 
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        // DB에 가벼운 읽기 요청을 보내 활동(Activity)을 유지합니다.
-        const { count, error } = await supabase
+        // DB 활동성 보장을 위해 실제 쿼리 실행 (단순 헤더 체크보다 확실함)
+        const { data, error } = await supabase
             .from('prompts')
-            .select('*', { count: 'exact', head: true })
+            .select('id')
+            .limit(1)
 
         if (error) {
             console.error('Health check error:', error)
@@ -26,10 +36,9 @@ export async function GET() {
 
         return NextResponse.json({
             status: 'active',
-            count,
+            db_connected: true,
             timestamp: new Date().toISOString(),
-            schedule: '0 0 * * *',
-            interval: 'once per day (Supabase pause prevention)',
+            message: 'Supabase activity maintained successfully.'
         })
     } catch (error) {
         return NextResponse.json({ status: 'error', message: String(error) }, { status: 500 })
