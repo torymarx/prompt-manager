@@ -34,8 +34,12 @@ export function Sidebar({ selectedFolderId, onSelectFolder, collapsed, onToggleC
           'flex items-center gap-2.5 flex-1 min-w-0',
           collapsed && 'md:justify-center'
         )}>
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary shrink-0">
-            <BrainCircuit className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center justify-center w-14 h-14 shrink-0 overflow-hidden relative">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="absolute w-[280%] h-[280%] object-contain scale-[1.0] translate-y-[-18%]" 
+            />
           </div>
           <span className={cn(
             'font-bold text-sm truncate',
@@ -76,7 +80,7 @@ export function Sidebar({ selectedFolderId, onSelectFolder, collapsed, onToggleC
         collapsed && 'md:hidden'
       )}>
         <p className="text-[10px] text-muted-foreground leading-tight">
-          © {new Date().getFullYear()} Naku Lab Studio <span className="opacity-50">v2.2.4</span>
+          © {new Date().getFullYear()} Naku Lab Studio <span className="opacity-50">v3.2.0</span>
         </p>
         <HelpModal />
       </div>

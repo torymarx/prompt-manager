@@ -2,18 +2,26 @@
 
 // 프롬프트 목록 컴포넌트 - 그리드/리스트 전환, CRUD 모달 통합, 순서 정렬
 import { useState } from 'react'
-import { Plus, LayoutGrid, List, Inbox, Loader2 } from 'lucide-react'
+import { Plus, LayoutGrid, List, Inbox, Loader2, Globe, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogFooter
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { arrayMove } from '@dnd-kit/sortable'
 import { PromptCard } from './PromptCard'
 import { PromptEditor } from './PromptEditor'
+import { WebsiteEditor } from '../websites/WebsiteEditor'
 import { usePrompts } from '@/lib/hooks/usePrompts'
 import { useFolders } from '@/lib/hooks/useFolders'
+import { useCommentCounts } from '@/lib/hooks/useCommentCounts'
 import type { Prompt, ViewMode } from '@/lib/types'
 
 // 복사 후 클립보드 에러 알림
@@ -42,9 +50,11 @@ export function PromptList({
     searchQuery ? undefined : folderIds
   )
   const { folders } = useFolders()
+  const commentCounts = useCommentCounts()
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [editorOpen, setEditorOpen] = useState(false)
+  const [websiteEditorOpen, setWebsiteEditorOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Prompt | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null)
   // 표시할 프롬프트: 검색 중이면 검색 결과, 아니면 폴더 내 목록
@@ -142,16 +152,26 @@ export function PromptList({
               </Button>
             </div>
 
-            {/* 새 프롬프트 */}
-            <Button
-              size="sm"
-              onClick={() => { setEditTarget(null); setEditorOpen(true) }}
-              className="gap-1.5 h-9 sm:h-8 px-3 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">새 프롬프트</span>
-              <span className="sm:hidden">추가</span>
-            </Button>
+            {/* 추가 드롭다운 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className="gap-1.5 h-9 sm:h-8 px-3 text-sm shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>추가</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => { setEditTarget(null); setEditorOpen(true) }}>
+                  <FileText className="w-4 h-4 mr-2" /> 새 프롬프트
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setEditTarget(null); setWebsiteEditorOpen(true) }}>
+                  <Globe className="w-4 h-4 mr-2" /> 새 링크 (북마크)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -194,6 +214,7 @@ export function PromptList({
                 onDelete={setDeleteTarget}
                 onShare={handleShare}
                 onStopShare={handleStopShare}
+                commentCount={commentCounts[prompt.id]}
               />
             ))}
           </div>
@@ -211,6 +232,7 @@ export function PromptList({
                 onDelete={setDeleteTarget}
                 onShare={handleShare}
                 onStopShare={handleStopShare}
+                commentCount={commentCounts[prompt.id]}
               />
             ))}
           </div>
@@ -225,6 +247,15 @@ export function PromptList({
         folders={folders}
         currentFolderId={folderIds?.[0] ?? null}
         editTarget={editTarget}
+      />
+
+      {/* 북마크 에디터 추가 (어디서나 링크 등록 가능하게) */}
+      <WebsiteEditor
+        open={websiteEditorOpen}
+        onClose={() => setWebsiteEditorOpen(false)}
+        onSave={handleSave}
+        currentFolderId={folderIds?.[0] ?? null}
+        editTarget={null}
       />
 
       {/* 삭제 확인 모달 */}

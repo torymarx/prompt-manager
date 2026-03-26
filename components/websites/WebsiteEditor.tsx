@@ -115,6 +115,7 @@ export function WebsiteEditor({ open, onClose, onSave, currentFolderId, editTarg
       disable_share: disableShare,
       is_public: false,
       share_token: null,
+      image_urls: thumbnail ? [thumbnail] : [],
     })
     setSaving(false)
     onClose()

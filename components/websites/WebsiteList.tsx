@@ -2,15 +2,23 @@
 
 // 웹사이트 북마크 목록 - 그리드 뷰 전용
 import { useState } from 'react'
-import { Plus, Loader2, Inbox } from 'lucide-react'
+import { Plus, Loader2, Inbox, Globe, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { WebsiteCard } from './WebsiteCard'
 import { WebsiteEditor } from './WebsiteEditor'
+import { PromptEditor } from '../prompts/PromptEditor'
 import { usePrompts } from '@/lib/hooks/usePrompts'
+import { useFolders } from '@/lib/hooks/useFolders'
 import type { Prompt } from '@/lib/types'
 
 interface WebsiteListProps {
@@ -20,7 +28,9 @@ interface WebsiteListProps {
 
 export function WebsiteList({ folderIds, folderName }: WebsiteListProps) {
   const { prompts: websites, loading, createPrompt, updatePrompt, deletePrompt } = usePrompts(folderIds)
+  const { folders } = useFolders()
   const [editorOpen, setEditorOpen] = useState(false)
+  const [promptEditorOpen, setPromptEditorOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Prompt | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null)
 
@@ -46,13 +56,25 @@ export function WebsiteList({ folderIds, folderName }: WebsiteListProps) {
           <h2 className="text-lg font-semibold">{folderName}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">{websites.length}개의 링크</p>
         </div>
-        <Button
-          size="sm"
-          onClick={() => { setEditTarget(null); setEditorOpen(true) }}
-          className="gap-1.5"
-        >
-          <Plus className="w-4 h-4" /> 새 링크 추가
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              className="gap-1.5 shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>추가</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={() => { setEditTarget(null); setPromptEditorOpen(true) }}>
+              <FileText className="w-4 h-4 mr-2" /> 새 프롬프트
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setEditTarget(null); setEditorOpen(true) }}>
+              <Globe className="w-4 h-4 mr-2" /> 새 링크 (북마크)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* 목록 */}
@@ -70,7 +92,7 @@ export function WebsiteList({ folderIds, folderName }: WebsiteListProps) {
               variant="outline"
               onClick={() => { setEditTarget(null); setEditorOpen(true) }}
             >
-              <Plus className="w-4 h-4 mr-1" /> 첫 링크 추가
+              첫 링크 추가
             </Button>
           </div>
         ) : (
@@ -94,6 +116,16 @@ export function WebsiteList({ folderIds, folderName }: WebsiteListProps) {
         onSave={handleSave}
         currentFolderId={folderIds?.[0] ?? null}
         editTarget={editTarget}
+      />
+
+      {/* 프롬프트 에디터 추가 (웹사이트 폴더에서도 프롬프트 생성 가능하게) */}
+      <PromptEditor
+        open={promptEditorOpen}
+        onClose={() => setPromptEditorOpen(false)}
+        onSave={handleSave}
+        folders={folders}
+        currentFolderId={folderIds?.[0] ?? null}
+        editTarget={null}
       />
 
       {/* 삭제 확인 모달 */}

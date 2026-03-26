@@ -34,7 +34,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       .order('created_at', { ascending: true }),
     supabase
       .from('prompts')
-      .select('id, folder_id, title, content, tags, image_url, link_url, created_at, sort_order')
+      .select('id, folder_id, title, content, tags, image_url, image_urls, link_url, created_at, sort_order')
       .eq('user_id', share.user_id)
       .eq('disable_share', false)
       .order('sort_order', { ascending: true })
@@ -86,6 +86,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       content: p.content,
       tags: p.tags ?? [],
       image_url: p.image_url ?? null,
+      image_urls: p.image_urls ?? null,
       link_url: p.link_url ?? null,
       sort_order: p.sort_order ?? 0,
       is_public: false,

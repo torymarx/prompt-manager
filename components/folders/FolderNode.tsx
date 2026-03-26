@@ -46,9 +46,11 @@ export function FolderNode({
     <div>
       <div
         className={cn(
-          'group flex items-center gap-1 rounded-md px-2 py-1.5 cursor-pointer text-sm',
-          'hover:bg-accent hover:text-accent-foreground',
-          isSelected && 'bg-accent text-accent-foreground font-medium'
+          'group flex items-center gap-1 rounded-md px-2 py-1.5 cursor-pointer text-sm transition-all relative overflow-hidden',
+          'hover:bg-accent/50 hover:text-accent-foreground',
+          isSelected
+            ? 'bg-primary/10 text-primary font-semibold shadow-sm ring-1 ring-primary/20'
+            : 'text-muted-foreground'
         )}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
         onClick={() => onSelect(folder.id, folder.folder_type)}

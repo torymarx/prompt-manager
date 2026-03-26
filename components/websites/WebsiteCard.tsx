@@ -42,9 +42,15 @@ export function WebsiteCard({ website, onEdit, onDelete }: WebsiteCardProps) {
             }}
           />
         ) : null}
-        {/* 썸네일 없거나 에러 시 플레이스홀더 */}
-        <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 ${website.image_url ? 'hidden' : ''}`}>
-          <Globe className="w-10 h-10 text-muted-foreground/30" />
+        <div className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 ${website.image_url ? 'hidden' : ''}`}>
+          <div className="flex items-center justify-center w-10 h-10 shrink-0 overflow-hidden">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="w-full h-full object-cover scale-[1.5] translate-y-[-10%]" 
+            />
+          </div>
+          <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest mt-2">No Preview</p>
         </div>
         {/* 호버 시 열기 오버레이 */}
         <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -56,9 +62,14 @@ export function WebsiteCard({ website, onEdit, onDelete }: WebsiteCardProps) {
 
       {/* 정보 + 액션 */}
       <div className="flex items-start gap-2 p-3 relative h-14 sm:h-16">
-        <div className="flex-1 min-w-0 pr-6 flex items-center h-full">
+        <a 
+          href={website.content} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex-1 min-w-0 pr-6 flex items-center h-full hover:underline decoration-primary/30"
+        >
           <p className="font-medium text-sm line-clamp-2 leading-snug">{website.title}</p>
-        </div>
+        </a>
 
         {/* 공유 제외 뱃지 (우측 상단 절대배치) */}
         {website.disable_share && (

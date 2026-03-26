@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
+import { Copy, Check, Pencil, Trash2, Tag, Link, Link2Off, X, ZoomIn, Maximize2, ExternalLink, ChevronUp, ChevronDown, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Prompt, ViewMode } from '@/lib/types'
+import { CommentSection } from '@/components/comments/CommentSection'
 
 interface PromptCardProps {
   prompt: Prompt
@@ -25,6 +26,7 @@ interface PromptCardProps {
   onDelete?: (prompt: Prompt) => void
   onShare?: (prompt: Prompt) => void
   onStopShare?: (prompt: Prompt) => void
+  commentCount?: number
 }
 
 /** 검색어 하이라이트 렌더링 */
@@ -160,7 +162,31 @@ function ContentModal({ prompt, onClose, onEdit, onImageClick, readOnly }: { pro
         <div className="sm:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-muted-foreground/30" />
 
         {/* 상단/좌측: 이미지 (이미지 있을 때만) */}
-        {prompt.image_url && (
+        {(prompt.image_urls && prompt.image_urls.length > 0) ? (
+          <div className="flex flex-col w-full sm:w-2/5 shrink-0 bg-black overflow-hidden border-b sm:border-b-0 sm:border-r">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4" style={{ maxHeight: '100%' }}>
+              {prompt.image_urls.map((url, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onImageClick?.()}
+                  className="relative w-full aspect-auto rounded-lg overflow-hidden group/modal-img cursor-zoom-in shadow-lg"
+                  aria-label={`이미지 ${idx + 1} 크게 보기`}
+                >
+                  <SafeImage
+                    src={url}
+                    alt={`${prompt.title} - ${idx + 1}`}
+                    className="w-full h-auto block object-contain transition-transform group-hover/modal-img:scale-105"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/modal-img:opacity-100 transition-opacity pointer-events-none">
+                    <div className="bg-black/40 text-white p-2 rounded-full backdrop-blur-sm">
+                      <Maximize2 className="w-5 h-5" />
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : prompt.image_url ? (
           <button
             onClick={onImageClick}
             className="relative w-full sm:w-2/5 shrink-0 bg-black flex items-center justify-center overflow-hidden max-h-[30vh] sm:max-h-none group/modal-img cursor-zoom-in"
@@ -177,7 +203,7 @@ function ContentModal({ prompt, onClose, onEdit, onImageClick, readOnly }: { pro
               </div>
             </div>
           </button>
-        )}
+        ) : null}
 
         {/* 우측(또는 전체): 프롬프트 내용 */}
         <div className={cn(
@@ -235,10 +261,20 @@ function ContentModal({ prompt, onClose, onEdit, onImageClick, readOnly }: { pro
                       className="w-full h-auto rounded-lg block"
                     />
                   ),
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                      {children}
+                    </a>
+                  ),
                 }}
               >
                 {prompt.content}
               </ReactMarkdown>
+            </div>
+
+            {/* 댓글 섹션 */}
+            <div className="mt-8 pt-8 border-t px-4 sm:px-0">
+              <CommentSection promptId={prompt.id} />
             </div>
           </div>
 
@@ -285,7 +321,7 @@ function ContentModal({ prompt, onClose, onEdit, onImageClick, readOnly }: { pro
   )
 }
 
-export function PromptCard({ prompt, viewMode, readOnly, searchQuery, onMoveUp, onMoveDown, onEdit, onDelete, onShare, onStopShare }: PromptCardProps) {
+export function PromptCard({ prompt, viewMode, readOnly, searchQuery, onMoveUp, onMoveDown, onEdit, onDelete, onShare, onStopShare, commentCount }: PromptCardProps) {
   const [copied, setCopied] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [contentOpen, setContentOpen] = useState(false)
@@ -334,18 +370,34 @@ export function PromptCard({ prompt, viewMode, readOnly, searchQuery, onMoveUp, 
                 alt=""
                 className="w-11 h-11 object-cover transition-opacity group-hover/thumb:opacity-80"
               />
+              {prompt.image_urls && prompt.image_urls.length > 1 && (
+                <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[9px] px-1 rounded-tl font-bold">
+                  +{prompt.image_urls.length - 1}
+                </div>
+              )}
             </button>
           )}
 
           {/* 내용 - 클릭 시 전체보기 */}
           <button
-            className="flex-1 min-w-0 text-left hover:opacity-80 active:opacity-70 transition-opacity py-1 flex items-center"
+            className="flex-1 min-w-0 text-left hover:opacity-80 active:opacity-70 transition-opacity py-1 flex flex-col justify-center"
             onClick={() => setContentOpen(true)}
             aria-label="내용 전체 보기"
           >
             <p className="font-medium truncate text-sm sm:text-base">
               <HighlightedText text={prompt.title} query={searchQuery} />
             </p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <p className="text-xs text-muted-foreground truncate opacity-70 flex-1">
+                {prompt.content.replace(/[#*`>]/g, '').slice(0, 100)}
+              </p>
+              {commentCount && commentCount > 0 ? (
+                <div className="flex items-center gap-1 text-[10px] font-medium text-primary/70 bg-primary/5 px-1.5 py-0.5 rounded-full shrink-0">
+                  <MessageSquare className="w-2.5 h-2.5" />
+                  {commentCount}
+                </div>
+              ) : null}
+            </div>
           </button>
 
           {/* 액션 버튼 - 모바일: 항상 표시, PC: hover 시 표시 */}
@@ -454,6 +506,12 @@ export function PromptCard({ prompt, viewMode, readOnly, searchQuery, onMoveUp, 
               alt=""
               className="w-full h-40 sm:h-48 object-cover transition-transform duration-200 group-hover/thumb:scale-105"
             />
+            {prompt.image_urls && prompt.image_urls.length > 1 && (
+              <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm flex items-center gap-1">
+                <ZoomIn className="w-3 h-3" />
+                +{prompt.image_urls.length - 1}
+              </div>
+            )}
           </button>
         ) : (
           <div className="w-full h-1.5 bg-gradient-to-r from-primary/30 to-primary/60" />
@@ -468,6 +526,16 @@ export function PromptCard({ prompt, viewMode, readOnly, searchQuery, onMoveUp, 
           <h3 className="font-semibold line-clamp-2 text-sm sm:text-base leading-snug">
             <HighlightedText text={prompt.title} query={searchQuery} />
           </h3>
+          {commentCount && commentCount > 0 ? (
+            <div className="flex items-center gap-1.5 mt-auto">
+              <div className="inline-flex items-center gap-1 text-[10px] font-medium text-primary/80 bg-primary/5 px-2 py-0.5 rounded-full">
+                <MessageSquare className="w-3 h-3" />
+                {commentCount}
+              </div>
+            </div>
+          ) : (
+            <div className="h-4" /> // 레이아웃 유지를 위한 더미
+          )}
         </button>
 
         {/* 액션 버튼 영역 - 항상 표시 (터치 최적화) */}

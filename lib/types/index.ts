@@ -24,6 +24,7 @@ export type Prompt = {
   content: string; // 마크다운
   tags: string[];
   image_url: string | null;
+  image_urls: string[] | null; // 다중 이미지 URL 배열
   link_url: string | null;  // 참조 링크
   sort_order?: number;      // 수동 정렬 순서 (선택, DB default 0)
   is_public: boolean;
@@ -41,3 +42,24 @@ export type SearchResult = Prompt & {
 
 /** 뷰 모드 */
 export type ViewMode = 'grid' | 'list';
+
+/** 댓글 타입 */
+export type Comment = {
+  id: string;
+  prompt_id: string;
+  user_id: string;
+  user_email?: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  reactions?: CommentReaction[];
+};
+
+/** 댓글 반응(감정표현) 타입 */
+export type CommentReaction = {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  emoji: string; // '👍', '❤️', '😆', '😮', '😢', '🔥'
+};

@@ -34,13 +34,11 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
   const [newFolderType, setNewFolderType] = useState<'prompt' | 'website'>('prompt')
   const initDone = useRef(false)
 
-  // 북마크(웹사이트) 폴더가 없으면 자동 생성
+  // 북마크(웹사이트) 폴더가 없으면 자동 생성 로직 제거 (사용자 의사에 따라 삭제 가능하도록)
   useEffect(() => {
     if (loading || initDone.current) return
     initDone.current = true
-    if (!folders.some((f) => f.folder_type === 'website')) {
-      createFolder('북마크', null, 'website')
-    }
+    // 기존의 강제 생성 로직(createFolder)을 제거했습니다. 🫡
   }, [loading, folders])
 
   const openCreate = (parentId: string | null) => {

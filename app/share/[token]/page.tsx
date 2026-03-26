@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { CopyButton } from './CopyButton'
+import { CommentSection } from '@/components/comments/CommentSection'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface SharePageProps {
   params: Promise<{ token: string }>
@@ -15,7 +18,7 @@ export default async function SharePage({ params }: SharePageProps) {
   // 토큰으로 공개된 프롬프트 조회 (폴더 정보 포함)
   const { data: prompt } = await supabase
     .from('prompts')
-    .select('id, user_id, folder_id, title, content, tags, image_url, is_public')
+    .select('id, user_id, folder_id, title, content, tags, image_url, image_urls, is_public')
     .eq('share_token', token)
     .eq('is_public', true)
     .single()
@@ -66,7 +69,19 @@ export default async function SharePage({ params }: SharePageProps) {
         <div className={prompt.image_url ? 'flex flex-col sm:flex-row gap-6 sm:gap-10 items-start' : ''}>
 
           {/* 상단/좌측: 이미지 (이미지 있을 때만) */}
-          {prompt.image_url && (
+          {prompt.image_urls && prompt.image_urls.length > 0 ? (
+            <div className="w-full sm:w-2/5 shrink-0 flex flex-col gap-4 max-h-[60vh] sm:max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+              {prompt.image_urls.map((url: string, idx: number) => (
+                <div key={idx} className="bg-black rounded-xl overflow-hidden shadow-lg">
+                  <img
+                    src={url}
+                    alt=""
+                    className="w-full h-auto object-contain"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : prompt.image_url ? (
             <div className="w-full sm:w-2/5 shrink-0 bg-black rounded-xl overflow-hidden max-h-[40vh] sm:max-h-none">
               <img
                 src={prompt.image_url}
@@ -74,7 +89,7 @@ export default async function SharePage({ params }: SharePageProps) {
                 className="w-full h-full object-cover sm:object-contain sm:sticky sm:top-6"
               />
             </div>
-          )}
+          ) : null}
 
           {/* 우측(또는 전체): 내용 */}
           <div className="flex-1 min-w-0">
@@ -94,9 +109,25 @@ export default async function SharePage({ params }: SharePageProps) {
             <hr className="mb-6" />
 
             {/* 내용 */}
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-              {prompt.content}
-            </pre>
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline font-medium">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {prompt.content}
+              </ReactMarkdown>
+            </div>
+
+            {/* 댓글 섹션 */}
+            <div className="mt-12 pt-10 border-t">
+              <CommentSection promptId={prompt.id} />
+            </div>
           </div>
         </div>
       </main>

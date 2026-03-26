@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { useSearch } from '@/lib/hooks/useSearch'
 import { useFolders, getDescendantIds } from '@/lib/hooks/useFolders'
 import { LogOut, ChevronRight, BrainCircuit, User } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function DashboardClient() {
   const router = useRouter()
@@ -143,17 +144,20 @@ export default function DashboardClient() {
           </button>
 
           {/* 브레드크럼 */}
-          <div className="flex items-center gap-1 text-sm text-muted-foreground min-w-0 flex-1">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground min-w-0 flex-1 overflow-x-auto no-scrollbar py-1">
             <button
               onClick={() => setSelectedFolderId(null)}
-              className="hover:text-foreground active:text-foreground transition-colors shrink-0 font-medium min-h-[36px] px-1 flex items-center"
+              className="hover:text-foreground active:text-foreground transition-colors shrink-0 font-medium px-1 flex items-center"
             >
               전체
             </button>
             {breadcrumb.map((name, i) => (
-              <span key={i} className="flex items-center gap-1 min-w-0">
-                <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-                <span className={i === breadcrumb.length - 1 ? 'text-foreground font-medium truncate' : 'truncate'}>
+              <span key={i} className="flex items-center gap-1 shrink-0">
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-50" />
+                <span className={cn(
+                  'max-w-[100px] sm:max-w-[150px] truncate transition-colors px-1',
+                  i === breadcrumb.length - 1 ? 'text-foreground font-semibold' : ''
+                )}>
                   {name}
                 </span>
               </span>
@@ -161,12 +165,14 @@ export default function DashboardClient() {
           </div>
 
           {/* 검색 + 액션 */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            <div className="w-28 sm:w-48 md:w-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
+            <div className="w-auto flex-1 sm:flex-none min-w-[40px] sm:min-w-[200px] md:min-w-[240px]">
               <SearchBar value={query} onChange={setQuery} />
             </div>
-            <CollectionShareButton />
-            <ThemeToggle />
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <CollectionShareButton />
+              <ThemeToggle />
+            </div>
             {userEmail && (
               <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs text-muted-foreground max-w-[180px]">
                 <User className="w-3.5 h-3.5 shrink-0" />

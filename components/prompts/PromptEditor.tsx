@@ -35,6 +35,7 @@ const EMPTY_FORM = {
   content: '',
   tags: [] as string[],
   image_url: '',
+  image_urls: [] as string[],
   link_url: '',
   folder_id: null as string | null,
   disable_share: false,
@@ -45,6 +46,7 @@ export function PromptEditor({
 }: PromptEditorProps) {
   const [form, setForm] = useState({ ...EMPTY_FORM, folder_id: currentFolderId })
   const [tagInput, setTagInput] = useState('')
+  const [urlInput, setUrlInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [thumbnailTab, setThumbnailTab] = useState<'url' | 'file'>('url')
   const [uploading, setUploading] = useState(false)
@@ -77,6 +79,7 @@ export function PromptEditor({
         content: editTarget.content,
         tags: editTarget.tags,
         image_url: editTarget.image_url || '',
+        image_urls: editTarget.image_urls || (editTarget.image_url ? [editTarget.image_url] : []),
         link_url: editTarget.link_url || '',
         folder_id: editTarget.folder_id,
         disable_share: editTarget.disable_share || false,
@@ -88,9 +91,14 @@ export function PromptEditor({
   }, [editTarget, currentFolderId, open])
 
   const addTag = () => {
-    const tag = tagInput.trim()
-    if (tag && !form.tags.includes(tag)) {
-      setForm((prev) => ({ ...prev, tags: [...prev.tags, tag] }))
+    const input = tagInput.trim()
+    if (!input) return
+    
+    // 공백으로 분리하여 여러 태그를 추출 (이미 있는 태그 제외)
+    const newTags = input.split(/\s+/).filter(t => t && !form.tags.includes(t))
+    
+    if (newTags.length > 0) {
+      setForm((prev) => ({ ...prev, tags: [...prev.tags, ...newTags] }))
     }
     setTagInput('')
   }
@@ -140,30 +148,59 @@ export function PromptEditor({
       img.src = objectUrl
     })
 
-  // 이미지 파일 압축 후 Supabase Storage 업로드
+  // 이미지 파일들 압축 후 Supabase Storage 업로드
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    
     setUploading(true)
+    let uploadedUrls: string[] = []
+    
     try {
-      const compressed = await compressImage(file)
-      const fileName = `${crypto.randomUUID()}.jpg`
-      const { error } = await supabase.storage
-        .from('thumbnails')
-        .upload(fileName, compressed, { contentType: 'image/jpeg' })
-      if (error) {
-        toast.error('이미지 업로드에 실패했습니다.')
-      } else {
-        const { data: { publicUrl } } = supabase.storage.from('thumbnails').getPublicUrl(fileName)
-        setForm((p) => ({ ...p, image_url: publicUrl }))
-        toast.success('이미지가 업로드되었습니다.')
+      for (const file of files) {
+        const compressed = await compressImage(file)
+        const fileName = `${crypto.randomUUID()}.jpg`
+        const { error } = await supabase.storage
+          .from('thumbnails')
+          .upload(fileName, compressed, { contentType: 'image/jpeg' })
+        
+        if (error) {
+          toast.error(`"${file.name}" 업로드에 실패했습니다.`)
+        } else {
+          const { data: { publicUrl } } = supabase.storage.from('thumbnails').getPublicUrl(fileName)
+          uploadedUrls.push(publicUrl)
+        }
       }
-    } catch {
+
+      if (uploadedUrls.length > 0) {
+        setForm((p) => {
+          const nextUrls = [...p.image_urls, ...uploadedUrls]
+          return { 
+            ...p, 
+            image_urls: nextUrls,
+            // 첫 번째 이미지를 대표 썸네일로 설정 (기존 호환성)
+            image_url: p.image_url || nextUrls[0] 
+          }
+        })
+        toast.success(`${uploadedUrls.length}개의 이미지가 업로드되었습니다.`)
+      }
+    } catch (err) {
       toast.error('이미지 처리 중 오류가 발생했습니다.')
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  const removeImage = (index: number) => {
+    setForm(p => {
+      const nextUrls = p.image_urls.filter((_, i) => i !== index)
+      return {
+        ...p,
+        image_urls: nextUrls,
+        image_url: nextUrls[0] || ''
+      }
+    })
   }
 
   const handleSave = async () => {
@@ -194,6 +231,7 @@ export function PromptEditor({
       content: form.content.trim(),
       tags: finalTags,
       image_url: form.image_url || null,
+      image_urls: form.image_urls.length > 0 ? form.image_urls : null,
       link_url: form.link_url.trim() || null,
       folder_id: form.folder_id,
       disable_share: form.disable_share,
@@ -375,9 +413,13 @@ export function PromptEditor({
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag() }
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      // Assuming addTag is updated to handle space-separated input
+                      addTag()
+                    }
                   }}
-                  placeholder="태그 입력 후 Enter"
+                  placeholder="태그 입력 (공백으로 구분 가능)"
                   className="h-11 sm:h-9 text-base sm:text-sm"
                 />
                 <Button type="button" variant="outline" onClick={addTag} className="h-11 sm:h-9 shrink-0">추가</Button>
@@ -421,11 +463,29 @@ export function PromptEditor({
               </div>
 
               {thumbnailTab === 'url' ? (
-                <Input
-                  value={form.image_url}
-                  onChange={(e) => setForm((p) => ({ ...p, image_url: e.target.value }))}
-                  placeholder="https://example.com/image.png"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder="https://example.com/image.png"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      if (urlInput.trim()) {
+                        setForm(p => {
+                          const nextUrls = [...p.image_urls, urlInput.trim()]
+                          return { ...p, image_urls: nextUrls, image_url: p.image_url || nextUrls[0] }
+                        })
+                        setUrlInput('')
+                      }
+                    }}
+                  >
+                    추가
+                  </Button>
+                </div>
               ) : (
                 <div className="flex items-center gap-3">
                   <Button
@@ -438,43 +498,47 @@ export function PromptEditor({
                   >
                     {uploading
                       ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 업로드 중...</>
-                      : <><Upload className="w-3.5 h-3.5" /> 파일 선택</>
+                      : <><Upload className="w-3.5 h-3.5" /> 파일 선택 (다중 가능)</>
                     }
                   </Button>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     className="hidden"
                     onChange={handleFileUpload}
                   />
-                  {form.image_url && thumbnailTab === 'file' && (
-                    <span className="text-xs text-green-600">업로드 완료</span>
-                  )}
                 </div>
               )}
 
-              {/* 미리보기 */}
-              {form.image_url && (
-                <div className="relative mt-2 inline-block">
-                  <img
-                    src={form.image_url}
-                    alt="썸네일 미리보기"
-                    className="h-24 rounded-md object-cover border"
-                    onError={(e) => {
-                      const el = e.currentTarget
-                      el.style.display = 'none'
-                      el.nextElementSibling?.classList.add('hidden')
-                      toast.error('이미지를 불러올 수 없습니다. URL을 확인해주세요.')
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setForm((p) => ({ ...p, image_url: '' }))}
-                    className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+              {/* 이미지 갤러리 미리보기 */}
+              {form.image_urls.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-3">
+                  {form.image_urls.map((url, index) => (
+                    <div key={index} className="relative group aspect-square rounded-lg border overflow-hidden bg-muted">
+                      <img
+                        src={url}
+                        alt={`이미지 ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://placehold.co/400x400?text=Error'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-destructive/90 text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-0.5 text-center font-medium">
+                          대표 썸네일
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
