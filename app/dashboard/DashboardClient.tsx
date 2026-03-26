@@ -34,6 +34,30 @@ export default function DashboardClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
+  // 브라우저 뒤로가기(백스페이스) 시 웹페이지 이탈 방지
+  const selectedFolderRef = useRef<string | null>(null)
+  selectedFolderRef.current = selectedFolderId
+
+  useEffect(() => {
+    // 초기 진입 시 history 스택에 더미 상태 push
+    window.history.pushState({ dashboard: true }, '')
+
+    const handlePopState = () => {
+      // 폴더가 선택된 상태면 → 전체 보기로 돌아감
+      if (selectedFolderRef.current !== null) {
+        setSelectedFolderId(null)
+        setSelectedFolderType('prompt')
+        window.history.pushState({ dashboard: true }, '')
+      } else {
+        // 이미 전체 보기 → 이탈 방지: 다시 push
+        window.history.pushState({ dashboard: true }, '')
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // 스와이프 감지용 ref
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
