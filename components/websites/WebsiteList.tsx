@@ -71,7 +71,7 @@ export function WebsiteList({ folderIds, folderName }: WebsiteListProps) {
               <FileText className="w-4 h-4 mr-2" /> 새 프롬프트
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => { setEditTarget(null); setEditorOpen(true) }}>
-              <Globe className="w-4 h-4 mr-2" /> 새 링크 (북마크)
+              <Globe className="w-4 h-4 mr-2" /> 북마크
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
