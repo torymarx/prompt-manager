@@ -1,7 +1,7 @@
 'use client'
 
 // 프롬프트 목록 컴포넌트 - 그리드/리스트 전환, CRUD 모달 통합, 순서 정렬
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, LayoutGrid, List, Inbox, Loader2, Globe, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -58,7 +58,33 @@ export function PromptList({
   const [editTarget, setEditTarget] = useState<Prompt | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null)
   // 표시할 프롬프트: 검색 중이면 검색 결과, 아니면 폴더 내 목록
-  const displayPrompts = searchQuery ? (searchResults || []) : prompts
+  // 전체 보기(folderIds 없음)일 때 폴더 우선순위 정렬: 인물/그림 → 상단, 지침/북마크/유튜브 → 하단
+  const displayPrompts = useMemo(() => {
+    const raw = searchQuery ? (searchResults || []) : prompts
+    // 특정 폴더 선택 시 또는 검색 중이면 기존 정렬 유지
+    if (folderIds || searchQuery) return raw
+
+    // 전체 보기: 폴더 이름 기반 우선순위 정렬
+    const HIGH_PRIORITY = ['인물', '그림']               // 상단 고정
+    const LOW_PRIORITY = ['지침프롬프트', '북마크', 'youtube', 'YOUTUBE']  // 하단 고정
+
+    const getFolderPriority = (folderId: string | null): number => {
+      if (!folderId) return 1
+      const folder = folders.find(f => f.id === folderId)
+      if (!folder) return 1
+      const name = folder.name.toLowerCase()
+      if (HIGH_PRIORITY.some(n => name.includes(n.toLowerCase()))) return 0
+      if (LOW_PRIORITY.some(n => name.includes(n.toLowerCase()))) return 2
+      return 1
+    }
+
+    return [...raw].sort((a, b) => {
+      const pa = getFolderPriority(a.folder_id)
+      const pb = getFolderPriority(b.folder_id)
+      if (pa !== pb) return pa - pb
+      return 0 // 같은 우선순위면 기존 순서 유지
+    })
+  }, [searchQuery, searchResults, prompts, folderIds, folders])
 
   const handleSave = async (values: Omit<Prompt, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (editTarget) {
