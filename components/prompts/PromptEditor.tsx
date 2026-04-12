@@ -205,6 +205,14 @@ export function PromptEditor({
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.content.trim()) return
+
+    // 분류(폴더)가 지정되지 않았을 때 확인 메시지
+    if (!form.folder_id) {
+      if (!confirm('폴더(분류)를 지정하지 않았습니다.\n이대로 저장하시겠습니까?')) {
+        return
+      }
+    }
+
     setSaving(true)
 
     // AI 핵심 키워드 자동 추출 (내용이 충분할 때)

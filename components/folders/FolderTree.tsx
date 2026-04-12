@@ -91,7 +91,7 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
       <div className="px-2 pt-2">
         <div
           className={cn(
-            'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm',
+            'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm mb-0.5',
             'hover:bg-accent hover:text-accent-foreground',
             selectedFolderId === null && 'bg-accent text-accent-foreground font-medium'
           )}
@@ -99,6 +99,22 @@ export function FolderTree({ selectedFolderId, onSelect }: FolderTreeProps) {
         >
           <Home className="w-4 h-4" />
           <span>전체 프롬프트</span>
+        </div>
+
+        {/* 미분류 보기 */}
+        <div
+          className={cn(
+            'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm',
+            'hover:bg-accent hover:text-accent-foreground',
+            selectedFolderId === '__UNCLASSIFIED__' && 'bg-accent text-accent-foreground font-medium'
+          )}
+          onClick={() => onSelect('__UNCLASSIFIED__')}
+        >
+          <Folder className="w-4 h-4 opacity-70" />
+          <span className="flex-1">미분류 프롬프트</span>
+          <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">
+            {directCounts['__UNCLASSIFIED__'] ?? 0}
+          </span>
         </div>
       </div>
 

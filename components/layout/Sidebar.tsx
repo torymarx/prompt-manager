@@ -80,7 +80,7 @@ export function Sidebar({ selectedFolderId, onSelectFolder, collapsed, onToggleC
         collapsed && 'md:hidden'
       )}>
         <p className="text-[10px] text-muted-foreground leading-tight">
-          © {new Date().getFullYear()} Naku Lab Studio <span className="opacity-50">v3.2.0</span>
+          © {new Date().getFullYear()} Naku Lab Studio <span className="opacity-50">v3.4.0</span>
         </p>
         <HelpModal />
       </div>

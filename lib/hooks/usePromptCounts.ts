@@ -14,9 +14,8 @@ export function usePromptCounts() {
     if (data) {
       const map: Record<string, number> = {}
       data.forEach(({ folder_id }) => {
-        if (folder_id) {
-          map[folder_id] = (map[folder_id] ?? 0) + 1
-        }
+        const key = folder_id || '__UNCLASSIFIED__'
+        map[key] = (map[key] ?? 0) + 1
       })
       setCounts(map)
     }

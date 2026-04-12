@@ -25,6 +25,18 @@ export function useSearch() {
       setResults([])
       return
     }
+
+    // "미분류" 키워드 처리
+    if (trimmed === '미분류') {
+      const { data } = await supabase
+        .from('prompts')
+        .select('*')
+        .is('folder_id', null)
+        .order('created_at', { ascending: false })
+      setResults(data ?? [])
+      setSearching(false)
+      return
+    }
     setSearching(true)
 
     // #태그 형식이면 태그 전용 검색

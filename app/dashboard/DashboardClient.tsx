@@ -83,13 +83,15 @@ export default function DashboardClient() {
 
   // 선택된 폴더 정보
   const selectedFolder = folders.find((f) => f.id === selectedFolderId)
-  const folderName = selectedFolderId
+  const folderName = selectedFolderId === '__UNCLASSIFIED__'
+    ? '미분류 프롬프트'
+    : selectedFolderId
     ? (selectedFolder?.name || '폴더')
     : '전체 프롬프트'
 
   const handleSelectFolder = (id: string | null, type?: 'prompt' | 'website') => {
     setSelectedFolderId(id)
-    setSelectedFolderType(id ? (type ?? 'prompt') : 'prompt')
+    setSelectedFolderType(id && id !== '__UNCLASSIFIED__' ? (type ?? 'prompt') : 'prompt')
     setMobileSidebarOpen(false)
   }
 
@@ -97,11 +99,13 @@ export default function DashboardClient() {
 
   const activeFolderIds = useMemo<string[] | undefined>(() => {
     if (!selectedFolderId) return undefined
+    if (selectedFolderId === '__UNCLASSIFIED__') return ['__UNCLASSIFIED__']
     return [selectedFolderId, ...getDescendantIds(selectedFolderId, folders)]
   }, [selectedFolderId, folders])
 
   const buildBreadcrumb = (folderId: string | null): string[] => {
     if (!folderId) return []
+    if (folderId === '__UNCLASSIFIED__') return ['미분류']
     const crumbs: string[] = []
     let currentId: string | null = folderId
     const visited = new Set<string>()

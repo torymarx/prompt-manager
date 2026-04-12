@@ -28,7 +28,13 @@ export function usePrompts(folderIds?: string[]) {
         setLoading(false)
         return
       }
-      query = query.in('folder_id', ids)
+
+      // "미분류(__UNCLASSIFIED__)" 처리: folder_id IS NULL 필터 적용
+      if (ids.length === 1 && ids[0] === '__UNCLASSIFIED__') {
+        query = query.is('folder_id', null)
+      } else {
+        query = query.in('folder_id', ids)
+      }
     }
 
     const { data, error } = await query
