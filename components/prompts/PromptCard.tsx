@@ -78,26 +78,35 @@ function ImageLightbox({ src, title, onClose }: { src: string; title: string; on
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
     document.body.style.overflow = 'hidden'
+    
+    // v3.5.0: 뒤로가기 시 닫기 연동
+    const currentState = window.history.state
+    window.history.pushState({ ...currentState, modal: 'lightbox' }, '')
+    
+    const handlePopState = () => onClose()
+    window.addEventListener('popstate', handlePopState)
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
+      window.removeEventListener('popstate', handlePopState)
     }
-  }, [handleKeyDown])
+  }, [handleKeyDown, onClose])
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
       onClick={onClose}
     >
       {/* 닫기 버튼 - 터치 타겟 최소 44px */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-black/50 text-white hover:bg-black/70 active:bg-black/90 transition-colors"
+        className="absolute top-4 right-4 z-10 flex items-center justify-center w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70 active:scale-90 transition-all"
         aria-label="닫기"
       >
-        <X className="w-5 h-5" />
+        <X className="w-6 h-6" />
       </button>
-      <div className="absolute top-4 left-4 z-10 text-white text-sm font-medium drop-shadow-lg max-w-[calc(100%-5rem)] truncate">
+      <div className="absolute top-6 left-6 z-10 text-white text-sm font-medium drop-shadow-lg max-w-[calc(100%-6rem)] truncate">
         {title}
       </div>
       <SafeImage
@@ -125,11 +134,20 @@ function ContentModal({ prompt, onClose, onEdit, onImageClick, readOnly }: { pro
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
     document.body.style.overflow = 'hidden'
+
+    // v3.5.0: 뒤로가기 시 닫기 연동
+    const currentState = window.history.state
+    window.history.pushState({ ...currentState, modal: 'content' }, '')
+    
+    const handlePopState = () => onClose()
+    window.addEventListener('popstate', handlePopState)
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
+      window.removeEventListener('popstate', handlePopState)
     }
-  }, [handleKeyDown])
+  }, [handleKeyDown, onClose])
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(prompt.content)

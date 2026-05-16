@@ -57,6 +57,25 @@ export function PromptList({
   const [websiteEditorOpen, setWebsiteEditorOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Prompt | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null)
+
+  // v3.5.0: 모달 상태와 브라우저 뒤로가기 연동
+  const anyModalOpen = editorOpen || websiteEditorOpen || !!deleteTarget
+  
+  useEffect(() => {
+    if (anyModalOpen) {
+      const currentState = window.history.state
+      window.history.pushState({ ...currentState, modal: 'list-modal' }, '')
+      
+      const handlePopState = () => {
+        setEditorOpen(false)
+        setWebsiteEditorOpen(false)
+        setDeleteTarget(null)
+      }
+      
+      window.addEventListener('popstate', handlePopState)
+      return () => window.removeEventListener('popstate', handlePopState)
+    }
+  }, [anyModalOpen])
   // 표시할 프롬프트: 검색 중이면 검색 결과, 아니면 폴더 내 목록
   // 전체 보기(folderIds 없음)일 때 폴더 우선순위 정렬: 인물/그림 → 상단, 지침/북마크/유튜브 → 하단
   const displayPrompts = useMemo(() => {
